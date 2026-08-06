@@ -23,7 +23,7 @@
       "bossKillScreenshots": true
     },
     "filters": {
-      "minimumRaidDuration": 60,
+      "minimumRaidDuration": 1,
       "ignoredMaps": []
     }
   }
