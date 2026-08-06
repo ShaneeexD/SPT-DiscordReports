@@ -125,9 +125,30 @@ internal class BossKillPatch : ModulePatch
 
 internal class LootPickupPatch : ModulePatch
 {
+    // Captured in prefix (before item moves to inventory), used in postfix
+    private static string? _pendingScreenshotPath;
+
     protected override MethodBase GetTargetMethod()
     {
         return AccessTools.Method(typeof(Player), nameof(Player.OnItemAddedOrRemoved));
+    }
+
+    [PatchPrefix]
+    private static void PatchPrefix(Player __instance, Item item, bool added)
+    {
+        try
+        {
+            _pendingScreenshotPath = null;
+            if (__instance.Location == "hideout") return;
+            if (!added || item == null) return;
+            if (!ReferenceEquals(__instance, Singleton<GameWorld>.Instance?.MainPlayer)) return;
+            if (!item.SpawnedInSession) return;
+            if (!Plugin.Screenshots.Value) return;
+
+            // Capture screenshot BEFORE the item is added to inventory (while it's still visible in the world)
+            _pendingScreenshotPath = ClientEventReporter.Instance?.CaptureLootScreenshot();
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] LootPickupPatch prefix error: {ex}"); }
     }
 
     [PatchPostfix]
@@ -138,12 +159,12 @@ internal class LootPickupPatch : ModulePatch
             if (__instance.Location == "hideout") return;
             if (!added || item == null) return;
             if (!ReferenceEquals(__instance, Singleton<GameWorld>.Instance?.MainPlayer)) return;
-            // Only report items found in raid (FIR) — skip items the player brought in
             if (!item.SpawnedInSession) return;
 
             Plugin.Log.LogInfo($"[DiscordRaidFeed] LootPickupPatch: item={item.LocalizedName()}, tpl={item.TemplateId}, fir=True, location={location?.Container?.ID}");
 
-            ClientEventReporter.Instance?.ReportLoot(item);
+            ClientEventReporter.Instance?.ReportLoot(item, _pendingScreenshotPath);
+            _pendingScreenshotPath = null;
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] LootPickupPatch error: {ex}"); }
     }

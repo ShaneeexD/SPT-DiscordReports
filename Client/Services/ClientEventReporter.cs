@@ -32,6 +32,7 @@ public sealed class ClientEventReporter : MonoBehaviour
     private bool _cachedIsAlive;
     private long _cachedFirValue;
     private long _cachedTotalValue;
+    private long _cachedLostOnDeathValue;
     private string _cachedKillerName = "Unknown";
     private ExitStatus _cachedExitStatus = ExitStatus.Survived;
     // Delayed screenshot capture for extract/death — wait for SessionResultExitStatus UI + 1s
@@ -58,6 +59,61 @@ public sealed class ClientEventReporter : MonoBehaviour
     };
 
     private static string MapName(string? id) => string.IsNullOrWhiteSpace(id) ? "Unknown" : (MapNames.TryGetValue(id, out var n) ? n : id);
+
+    // Maps WildSpawnType enum names (boss.Profile.Info.Settings.Role.ToString()) to friendly names.
+    private static readonly Dictionary<string, string> BossNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Bosses
+        ["bossBully"] = "Reshala",
+        ["bossGluhar"] = "Glukhar",
+        ["bossKilla"] = "Killa",
+        ["bossKojaniy"] = "Shturman",
+        ["bossSanitar"] = "Sanitar",
+        ["bossTagilla"] = "Tagilla",
+        ["bossKnight"] = "Knight",
+        ["bossZryachiy"] = "Zryachiy",
+        ["bossBoar"] = "Kaban",
+        ["bossBoarSniper"] = "Kaban Sniper",
+        ["bossKolontay"] = "Kolontay",
+        ["bossPartisan"] = "Partisan",
+        // Followers / guards
+        ["followerBully"] = "Reshala Guard",
+        ["followerKojaniy"] = "Shturman Guard",
+        ["followerSanitar"] = "Sanitar Guard",
+        ["followerTagilla"] = "Tagilla Guard",
+        ["followerGluharAssault"] = "Glukhar Guard (Assault)",
+        ["followerGluharSecurity"] = "Glukhar Guard (Security)",
+        ["followerGluharScout"] = "Glukhar Guard (Scout)",
+        ["followerGluharSnipe"] = "Glukhar Guard (Sniper)",
+        ["followerBigPipe"] = "Big Pipe",
+        ["followerBirdEye"] = "Bird Eye",
+        ["followerZryachiy"] = "Zryachiy Guard",
+        ["followerBoar"] = "Kaban Guard",
+        ["followerBoarClose1"] = "Kaban Guard",
+        ["followerBoarClose2"] = "Kaban Guard",
+        ["followerKolontayAssault"] = "Kolontay Guard (Assault)",
+        ["followerKolontaySecurity"] = "Kolontay Guard (Security)",
+    };
+
+    private static string BossName(string? role) => string.IsNullOrWhiteSpace(role) ? "Unknown" : (BossNames.TryGetValue(role, out var n) ? n : role!);
+
+    // Maps scav / other AI WildSpawnType roles to friendly English names.
+    private static readonly Dictionary<string, string> ScavNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["assault"] = "Scav",
+        ["assaultGroup"] = "Scav Group",
+        ["marksman"] = "Scav Sniper",
+        ["cursedAssault"] = "Cursed Scav",
+        ["crazyAssaultEvent"] = "Crazy Scav",
+        ["pmcBot"] = "Raider",
+        ["exUsec"] = "Rogue",
+        ["sectantPriest"] = "Cultist Priest",
+        ["sectantWarrior"] = "Cultist",
+        ["arenaFighterEvent"] = "Bloodhound",
+        ["shooterBTR"] = "BTR",
+    };
+
+    private static string ScavName(string? role) => string.IsNullOrWhiteSpace(role) ? "Unknown" : (ScavNames.TryGetValue(role, out var n) ? n : role!);
 
     public static ClientEventReporter? EnsureInstance()
     {
@@ -98,8 +154,7 @@ public sealed class ClientEventReporter : MonoBehaviour
                     _cachedLevel = player.Profile?.Info?.Level ?? 0;
                     _cachedMap = MapName(world.LocationId);
                     _cachedIsAlive = player.HealthController?.IsAlive ?? false;
-                    _cachedFirValue = CalculateInventoryValue(player, true);
-                    _cachedTotalValue = CalculateInventoryValue(player, false);
+                    CalculateInventoryValues(player, out _cachedFirValue, out _cachedTotalValue, out _cachedLostOnDeathValue);
 
                     // Level-up detection
                     if (Plugin.LevelUpEvents.Value && _cachedLevel > _lastLevel)
@@ -155,6 +210,7 @@ public sealed class ClientEventReporter : MonoBehaviour
         _cachedIsAlive = true;
         _cachedFirValue = 0;
         _cachedTotalValue = 0;
+        _cachedLostOnDeathValue = 0;
         _cachedKillerName = "Unknown";
         _lastLevel = _cachedLevel;
 
@@ -214,9 +270,9 @@ public sealed class ClientEventReporter : MonoBehaviour
             fields = new Dictionary<string, string>
             {
                 ["Killer"] = _cachedKillerName,
-                ["Gear Value Lost"] = FormatValue(_cachedTotalValue),
+                ["Gear Value Lost"] = FormatValue(_cachedLostOnDeathValue),
             };
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting death: killer={_cachedKillerName}, gearValue={_cachedTotalValue}, raidTime={raidTime}s");
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting death: killer={_cachedKillerName}, gearValue={_cachedLostOnDeathValue}, raidTime={raidTime}s");
         }
         else if (_cachedExitStatus == ExitStatus.Runner)
         {
@@ -265,8 +321,10 @@ public sealed class ClientEventReporter : MonoBehaviour
         if (boss?.Profile == null) return;
 
         var killer = (Player)aggressor;
-        var weapon = damageInfo.Weapon?.Name ?? "?";
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Boss kill: boss={boss.Profile.Info.Settings.Role}, weapon={weapon}");
+        var weapon = damageInfo.Weapon?.LocalizedName() ?? "?";
+        var role = boss.Profile.Info.Settings.Role.ToString();
+        var bossName = BossName(role);
+        Plugin.Log.LogInfo($"[DiscordRaidFeed] Boss kill: boss={role} ({bossName}), weapon={weapon}");
         Enqueue(new RaidEventPayload
         {
             Type = RaidEventType.BossKill,
@@ -276,7 +334,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             RaidTimeSeconds = Time.time - _raidStartedAt,
             Fields = new Dictionary<string, string>
             {
-                ["Boss"] = boss.Profile.Info.Settings.Role.ToString(),
+                ["Boss"] = bossName,
                 ["Weapon"] = weapon,
                 ["Body Part"] = bodyPart.ToString(),
                 ["Headshot"] = bodyPart.ToString().IndexOf("Head", StringComparison.OrdinalIgnoreCase) >= 0 ? "Yes" : "No",
@@ -286,7 +344,13 @@ public sealed class ClientEventReporter : MonoBehaviour
         });
     }
 
-    public void ReportLoot(Item item)
+    public string? CaptureLootScreenshot()
+    {
+        if (!Plugin.Screenshots.Value) return null;
+        return CaptureScreenshotToFile();
+    }
+
+    public void ReportLoot(Item item, string? screenshotPath = null)
     {
         if (!Plugin.LootEvents.Value || item == null) return;
         if (!_reportedLoot.Add(item.Id.ToString())) return;
@@ -308,7 +372,8 @@ public sealed class ClientEventReporter : MonoBehaviour
                 ["Quantity"] = item.StackObjectsCount.ToString(),
                 ["Value"] = FormatValue((long)value),
             },
-            Screenshot = Plugin.Screenshots.Value
+            Screenshot = false, // Already captured in prefix
+            ScreenshotPath = screenshotPath
         });
     }
 
@@ -340,14 +405,14 @@ public sealed class ClientEventReporter : MonoBehaviour
                 var killer = world.GetAlivePlayerByProfileID(killerId);
                 if (killer != null)
                 {
-                    var name = killer.Profile?.Info?.Nickname ?? killer.Profile?.Nickname ?? "Unknown";
+                    var name = KillerDisplayName(killer);
                     _cachedKillerName = name;
                     return name;
                 }
                 var dead = world.AllPlayersEverExisted?.FirstOrDefault(p => p.ProfileId == killerId);
                 if (dead != null)
                 {
-                    var name = dead.Profile?.Info?.Nickname ?? dead.Profile?.Nickname ?? "Unknown";
+                    var name = KillerDisplayName(dead);
                     _cachedKillerName = name;
                     return name;
                 }
@@ -358,23 +423,83 @@ public sealed class ClientEventReporter : MonoBehaviour
         catch { return "Unknown"; }
     }
 
-    private static long CalculateInventoryValue(Player player, bool firOnly)
+    // For bosses/followers/scavs and other AI, use the friendly English role name
+    // instead of the localized Russian Nickname. For PMCs and real players, fall back to Nickname.
+    private static string KillerDisplayName(Player killer)
     {
         try
         {
+            var role = killer.Profile?.Info?.Settings?.Role.ToString();
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                if (role.IndexOf("boss", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    role.IndexOf("follower", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return BossName(role);
+                }
+                if (ScavNames.ContainsKey(role))
+                {
+                    return ScavName(role);
+                }
+            }
+        }
+        catch { }
+        return killer.Profile?.Info?.Nickname ?? killer.Profile?.Nickname ?? "Unknown";
+    }
+
+    // Equipment slots whose contents are NOT lost on death.
+    private static readonly HashSet<string> KeptOnDeathSlots = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SecuredContainer", // secure container + everything inside it
+        "Scabbard",         // melee weapon
+        "SpecialSlot",      // compass, wi-fi camera, etc.
+    };
+
+    // Walk up the parent chain to determine if an item lives in a slot that is kept on death.
+    // Guarded against cycles with a visited set and a depth cap.
+    private static bool IsKeptOnDeath(Item item)
+    {
+        try
+        {
+            var current = item;
+            int depth = 0;
+            while (current != null && depth < 32)
+            {
+                var container = current.Parent?.Container;
+                if (container == null) break;
+                if (KeptOnDeathSlots.Contains(container.ID))
+                    return true;
+                current = container.ParentItem;
+                depth++;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    // Single pass over AllRealPlayerItems computing all three value variants at once,
+    // so we only iterate the inventory once per frame instead of three times.
+    private static void CalculateInventoryValues(Player player, out long firValue, out long totalValue, out long lostOnDeathValue)
+    {
+        firValue = 0;
+        totalValue = 0;
+        lostOnDeathValue = 0;
+        try
+        {
             var inventory = player.Inventory;
-            if (inventory == null) return 0;
+            if (inventory == null) return;
             var handbook = Singleton<Handbook>.Instance;
-            long total = 0;
             foreach (var item in inventory.AllRealPlayerItems)
             {
                 if (item == null) continue;
-                if (firOnly && !item.SpawnedInSession) continue;
-                try { total += (long)(handbook.GetBasePrice(item.TemplateId) * Math.Max(1, item.StackObjectsCount)); } catch { }
+                long itemValue = 0;
+                try { itemValue = (long)(handbook.GetBasePrice(item.TemplateId) * Math.Max(1, item.StackObjectsCount)); } catch { }
+                totalValue += itemValue;
+                if (item.SpawnedInSession) firValue += itemValue;
+                if (!IsKeptOnDeath(item)) lostOnDeathValue += itemValue;
             }
-            return total;
         }
-        catch { return 0; }
+        catch { }
     }
 
     private static string FormatValue(long value) => value >= 1000000 ? $"{value / 1000000.0:0.##}M ₽" : value >= 1000 ? $"{value / 1000.0:0.#}k ₽" : $"{value} ₽";
