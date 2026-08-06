@@ -24,7 +24,7 @@ public static class EmbedBuilder
         var mapName = MapNames.Resolve(e.Map);
         if (!string.IsNullOrWhiteSpace(mapName) && mapName != "Unknown") embed.Fields.Add(new() { Name = "Map", Value = mapName });
         if (e.RaidTimeSeconds > 0) embed.Fields.Add(new() { Name = "Raid Time", Value = TimeSpan.FromSeconds(e.RaidTimeSeconds).ToString(@"mm\:ss") });
-        foreach (var field in e.Fields) embed.Fields.Add(new() { Name = field.Key, Value = field.Value });
+        foreach (var field in e.Fields) if (!string.Equals(field.Key, "ValueRaw", StringComparison.OrdinalIgnoreCase)) embed.Fields.Add(new() { Name = field.Key, Value = field.Value });
         return embed;
     }
 }

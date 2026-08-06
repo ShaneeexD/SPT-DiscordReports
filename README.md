@@ -6,16 +6,14 @@ The server mod owns the webhook configuration and remote community settings. The
 
 ## Supported events
 
-The server side natively handles:
+The server mod handles webhook delivery, remote configuration, and loot threshold filtering. The client companion detects in-raid events and sends them to the server for posting to Discord:
 
-- Deaths
-- Successful extractions
-
-The client companion adds:
-
-- Rare loot pickups
-- Boss kills
-- Quest completions
+- Deaths (with killer name and gear value lost)
+- Successful extractions (with FIR and total inventory value)
+- Run-throughs (with FIR and total inventory value)
+- Rare loot pickups (with item value including attachments)
+- Boss and follower kills (with weapon, body part, and distance)
+- Quest completions (with trader name)
 - Level-ups
 - Client-side screenshots for supported events
 
@@ -51,6 +49,7 @@ Create a JSON file in a GitHub repository. For example:
     "events": {
       "deaths": true,
       "extracts": true,
+      "runThroughs": true,
       "loot": true,
       "quests": true,
       "bossKills": true,
@@ -111,7 +110,7 @@ The repository and file can be public or otherwise reachable by the SPT installa
 Edit the deployed server configuration:
 
 ```text
-SPT/user/mods/DiscordReports/config/config.json
+SPT/user/mods/DiscordRaidFeed/config/config.json
 ```
 
 Example with one community:
@@ -179,7 +178,7 @@ Each community can independently control event types, loot thresholds, screensho
 2. Open:
 
    ```text
-   SPT/user/mods/DiscordReports/config/config.json
+   SPT/user/mods/DiscordRaidFeed/config/config.json
    ```
 
 3. Paste the webhook configuration supplied by the Discord server owner into the `webhooks` array. For example:
@@ -238,7 +237,7 @@ Check the SPT server log for `[DiscordRaidFeed]` entries and verify:
 
 ## Loot notifications do not appear
 
-Loot notifications are filtered by `settings.loot.minimumValue`. The client calculates the item's base handbook value multiplied by its stack count. Lower the threshold temporarily while testing.
+Loot notifications are filtered by `settings.loot.minimumValue`. The client calculates the total value of the picked-up item plus all its children (attachments, mods, and contained items) multiplied by stack count where applicable. Lower the threshold temporarily while testing.
 
 ## Client events do not appear
 

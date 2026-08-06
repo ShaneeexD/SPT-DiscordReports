@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Comfort.Common;
 using EFT;
@@ -172,6 +173,24 @@ internal class LootPickupPatch : ModulePatch
 
 internal class QuestCompletionPatch : ModulePatch
 {
+    private static readonly Dictionary<string, string> TraderNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["54cb50c76803fa8b248b4571"] = "Prapor",
+        ["54cb57776803fa99248b456e"] = "Therapist",
+        ["579dc571d53a0658a154fbec"] = "Fence",
+        ["58330581ace78e27b8b10cee"] = "Skier",
+        ["5935c25fb3acc3127c3d8cd9"] = "Peacekeeper",
+        ["5a7c2eca46aef81a7ca2145d"] = "Mechanic",
+        ["5ac3b934156ae10c4430e83c"] = "Ragman",
+        ["5c0647fdd443bc2504c2d371"] = "Jaeger",
+        ["638f541a29ffd1183d187f57"] = "Lightkeeper",
+        ["656f0f98d80a697f855d34b1"] = "BTR Driver",
+        ["6617beeaa9cfa777ca915b7c"] = "Ref",
+    };
+
+    private static string TraderName(string? traderId) =>
+        !string.IsNullOrWhiteSpace(traderId) && TraderNames.TryGetValue(traderId, out var name) ? name : "Unknown";
+
     protected override MethodBase GetTargetMethod()
     {
         return AccessTools.Method(typeof(QuestControllerClientBackend), "FinishQuest");
@@ -183,8 +202,10 @@ internal class QuestCompletionPatch : ModulePatch
         try
         {
             if (quest == null || quest.QuestStatus != EQuestStatus.Success) return;
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] QuestCompletionPatch fired: {quest.Template?.Name ?? quest.Id}");
-            ClientEventReporter.Instance?.ReportQuest(quest.Template?.Name ?? quest.Id, "Unknown");
+            var questName = quest.Template?.Name ?? quest.Id;
+            var trader = TraderName(quest.Template?.TraderId);
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] QuestCompletionPatch fired: {questName} ({trader})");
+            ClientEventReporter.Instance?.ReportQuest(questName, trader);
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] QuestCompletionPatch error: {ex}"); }
     }
