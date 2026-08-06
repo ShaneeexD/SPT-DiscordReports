@@ -34,7 +34,9 @@ All events are queued and sent asynchronously. Discord failures are logged and d
 5. Create a webhook and select the destination channel.
 6. Copy the webhook URL.
 
-Treat the webhook URL like a password. Anyone who has it can post to that channel. Do not publish it in a public GitHub repository or commit it to source control.
+Treat the webhook URL like a password. Anyone who has it can post to that channel. Do not publish it in a public GitHub repository or commit it to source control, only share it to server users who want to announce raid feeds from their end.
+
+If a webhook URL is exposed outside of your server or is being used maliciously, you can revoke it in the Discord webhook settings and get a new one.
 
 ## 2. Create the community configuration file
 

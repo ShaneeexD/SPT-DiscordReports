@@ -41,9 +41,19 @@ public sealed class ConfigService(Log log)
     public bool IsEnabled(WebhookDestination destination, Events.RaidEventType type, Events.RaidEvent e)
     {
         var s = Get(destination).Settings;
-        if (s.Filters.MinimumRaidDuration > 0 && e.RaidTimeSeconds < s.Filters.MinimumRaidDuration) return false;
-        if (s.Filters.IgnoredMaps.Any(x => string.Equals(x, e.Map, StringComparison.OrdinalIgnoreCase))) return false;
-        return type switch { Events.RaidEventType.Death => s.Events.Deaths, Events.RaidEventType.Extract => s.Events.Extracts, Events.RaidEventType.Loot => s.Events.Loot, Events.RaidEventType.Quest => s.Events.Quests, Events.RaidEventType.BossKill => s.Events.BossKills, Events.RaidEventType.LevelUp => s.Events.LevelUps, _ => false };
+        if (s.Filters.MinimumRaidDuration > 0 && e.RaidTimeSeconds > 0 && e.RaidTimeSeconds < s.Filters.MinimumRaidDuration)
+        {
+            log.Info($"Event {type} filtered: raidTime {e.RaidTimeSeconds}s < minimum {s.Filters.MinimumRaidDuration}s for {destination.Name}");
+            return false;
+        }
+        if (s.Filters.IgnoredMaps.Any(x => string.Equals(x, e.Map, StringComparison.OrdinalIgnoreCase)))
+        {
+            log.Info($"Event {type} filtered: map {e.Map} in ignoredMaps for {destination.Name}");
+            return false;
+        }
+        var enabled = type switch { Events.RaidEventType.Death => s.Events.Deaths, Events.RaidEventType.Extract => s.Events.Extracts, Events.RaidEventType.Loot => s.Events.Loot, Events.RaidEventType.Quest => s.Events.Quests, Events.RaidEventType.BossKill => s.Events.BossKills, Events.RaidEventType.LevelUp => s.Events.LevelUps, _ => false };
+        if (!enabled) log.Info($"Event {type} filtered: disabled in remote config for {destination.Name}");
+        return enabled;
     }
 
     private async Task RefreshOneAsync(WebhookDestination destination, CancellationToken token)

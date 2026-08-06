@@ -36,6 +36,7 @@
 *.log
 *.tmp
 *.temp
+/Refs/
 
 # Local BepInEx configuration and generated mod settings
 /BepInEx/

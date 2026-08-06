@@ -13,11 +13,17 @@ public sealed class EventManager(DiscordWebhookService discord, ConfigService co
     {
         try
         {
+            log.Info($"Publish called: type={eventData.Type}, player={eventData.Player}, map={eventData.Map}, raidTime={eventData.RaidTimeSeconds}s");
             if (eventData.Type == RaidEventType.Loot && eventData.Fields.TryGetValue("Value", out var value) && long.TryParse(value.Replace("₽", "").Replace(",", ""), NumberStyles.Integer, CultureInfo.InvariantCulture, out var amount))
             {
-                if (!config.Local.Webhooks.Any(destination => config.Get(destination).Settings.Loot.MinimumValue <= amount)) return;
+                if (!config.Local.Webhooks.Any(destination => config.Get(destination).Settings.Loot.MinimumValue <= amount))
+                {
+                    log.Warning($"Loot event dropped: value {amount} below all configured minimums");
+                    return;
+                }
             }
-            discord.Enqueue(eventData);
+            var enqueued = discord.Enqueue(eventData);
+            log.Info($"Enqueue result: {enqueued} (queue had {config.Local.Webhooks.Count} webhooks)");
         }
         catch (Exception ex) { log.Error("Could not queue raid event.", ex); }
     }

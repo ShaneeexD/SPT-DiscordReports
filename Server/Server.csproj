@@ -16,7 +16,7 @@
     <None Include="package.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="DeployMod" AfterTargets="PostBuildEvent">
-    <PropertyGroup><DeployDir>$(ProjectDir)Build\SPT\user\mods\SPTDiscordReports</DeployDir></PropertyGroup>
+    <PropertyGroup><DeployDir>C:\SPT\SPT_Runtime\user\mods\SPTDiscordReports</DeployDir></PropertyGroup>
     <RemoveDir Directories="$(DeployDir)" />
     <MakeDir Directories="$(DeployDir)\config" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployDir)" />

@@ -2,7 +2,7 @@ using System;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using HarmonyLib;
+using SPTDiscordReports.Client.Patches;
 using SPTDiscordReports.Client.Services;
 using UnityEngine;
 
@@ -27,7 +27,7 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
         Enabled = Config.Bind("General", "Enabled", true, "Enable client-side Discord raid event reporting.");
-        ServerUrl = Config.Bind("General", "ServerUrl", "http://127.0.0.1:6969", "Local SPT server URL.");
+        ServerUrl = Config.Bind("General", "ServerUrl", "https://127.0.0.1:6969", "Local SPT server URL.");
         Screenshots = Config.Bind("Screenshots", "Enabled", true, "Capture screenshots for supported events.");
         LootEvents = Config.Bind("Events", "Loot", true, "Report picked-up loot. Remote configuration still controls thresholds.");
         BossKillEvents = Config.Bind("Events", "BossKills", true, "Report boss kills.");
@@ -36,7 +36,14 @@ public sealed class Plugin : BaseUnityPlugin
 
         try
         {
-            new Harmony(Guid).PatchAll();
+            Log.LogInfo("Enabling patches...");
+            new RaidStartPatch().Enable();
+            new RaidEndPatch().Enable();
+            new PlayerDeathPatch().Enable();
+            new BossKillPatch().Enable();
+            new LootPickupPatch().Enable();
+            new QuestCompletionPatch().Enable();
+            Log.LogInfo("All patches enabled. Creating reporter...");
             var host = new GameObject("SPTDiscordReportsClient");
             DontDestroyOnLoad(host);
             host.AddComponent<ClientEventReporter>();

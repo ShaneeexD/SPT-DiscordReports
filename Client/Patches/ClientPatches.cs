@@ -1,48 +1,142 @@
 using System;
 using System.Reflection;
+using Comfort.Common;
 using EFT;
 using EFT.Ballistics;
-using EFT.Interactive;
+using EFT.InventoryLogic;
 using EFT.Quests;
 using HarmonyLib;
+using SPT.Reflection.Patching;
 using SPTDiscordReports.Client.Services;
 
 namespace SPTDiscordReports.Client.Patches;
 
-[HarmonyPatch(typeof(BaseLocalGame<EftGamePlayerOwner>), "Stop", new[] { typeof(string), typeof(ExitStatus), typeof(string), typeof(float) })]
-internal static class RaidStopPatch
+internal class RaidStartPatch : ModulePatch
 {
-    [HarmonyPrefix]
-    private static void Prefix(ExitStatus exitStatus)
+    protected override MethodBase GetTargetMethod()
     {
-        var reporter = UnityEngine.Object.FindObjectOfType<ClientEventReporter>();
-        if (reporter == null) return;
-        if (exitStatus == ExitStatus.Survived || exitStatus == ExitStatus.Runner) reporter.ReportExtract(exitStatus);
-        else reporter.ReportDeath(exitStatus);
+        return typeof(GameWorld).GetMethod("OnGameStarted", BindingFlags.Public | BindingFlags.Instance);
+    }
+
+    [PatchPostfix]
+    private static void PatchPostfix(GameWorld __instance)
+    {
+        try
+        {
+            if (__instance.LocationId == "hideout") return;
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] RaidStartPatch fired: map={__instance.LocationId}, Instance={ClientEventReporter.Instance != null}");
+            var reporter = ClientEventReporter.EnsureInstance();
+            reporter?.OnRaidStart(__instance);
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] RaidStartPatch error: {ex}"); }
     }
 }
 
-[HarmonyPatch(typeof(Player), nameof(Player.OnBeenKilledByAggressor), new[] { typeof(IPlayer), typeof(DamageInfo), typeof(EBodyPart), typeof(EDamageType) })]
-internal static class BossKillPatch
+internal class RaidEndPatch : ModulePatch
 {
-    [HarmonyPostfix]
-    private static void Postfix(Player __instance, IPlayer aggressor, DamageInfo damageInfo, EBodyPart bodyPart)
+    protected override MethodBase GetTargetMethod()
     {
-        var reporter = UnityEngine.Object.FindObjectOfType<ClientEventReporter>();
-        if (reporter == null || __instance?.Profile?.Info?.Settings == null) return;
-        var role = __instance.Profile.Info.Settings.Role.ToString();
-        if (role.IndexOf("boss", StringComparison.OrdinalIgnoreCase) >= 0 || role.IndexOf("follower", StringComparison.OrdinalIgnoreCase) >= 0)
-            reporter.ReportBossKill(__instance, aggressor, damageInfo, bodyPart);
+        return typeof(GameWorld).GetMethod("OnDestroy", BindingFlags.Public | BindingFlags.Instance);
+    }
+
+    [PatchPostfix]
+    private static void PatchPostfix()
+    {
+        try
+        {
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] RaidEndPatch fired (GameWorld.OnDestroy), Instance={ClientEventReporter.Instance != null}");
+            ClientEventReporter.Instance?.OnRaidEnd();
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] RaidEndPatch error: {ex}"); }
     }
 }
 
-[HarmonyPatch(typeof(QuestControllerClientBackend), nameof(QuestControllerClientBackend.FinishQuest))]
-internal static class QuestCompletionPatch
+internal class PlayerDeathPatch : ModulePatch
 {
-    [HarmonyPostfix]
-    private static void Postfix(Quest quest)
+    protected override MethodBase GetTargetMethod()
     {
-        if (quest == null || quest.QuestStatus != EQuestStatus.Success) return;
-        UnityEngine.Object.FindObjectOfType<ClientEventReporter>()?.ReportQuest(quest.Template?.Name ?? quest.Id, "Unknown");
+        return AccessTools.Method(typeof(Player), nameof(Player.OnDead));
+    }
+
+    [PatchPostfix]
+    private static void PatchPostfix(Player __instance, EDamageType damageType)
+    {
+        try
+        {
+            if (__instance.Location == "hideout") return;
+            if (!ReferenceEquals(__instance, Singleton<GameWorld>.Instance?.MainPlayer)) return;
+            // Local player died — cache killer name and mark as not alive for raid end event
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] PlayerDeathPatch fired: damageType={damageType}");
+            ClientEventReporter.Instance?.OnPlayerDeath(__instance);
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] PlayerDeathPatch error: {ex}"); }
+    }
+}
+
+internal class BossKillPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.Method(typeof(Player), nameof(Player.OnBeenKilledByAggressor));
+    }
+
+    [PatchPostfix]
+    private static void PatchPostfix(Player __instance, IPlayer aggressor, DamageInfo damageInfo, EBodyPart bodyPart, EDamageType lethalDamageType)
+    {
+        try
+        {
+            if (__instance.Location == "hideout") return;
+            var role = __instance.Profile?.Info?.Settings.Role.ToString() ?? "";
+            if (role.IndexOf("boss", StringComparison.OrdinalIgnoreCase) < 0 && role.IndexOf("follower", StringComparison.OrdinalIgnoreCase) < 0) return;
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] BossKillPatch fired: boss={role}");
+            ClientEventReporter.Instance?.ReportBossKill(__instance, aggressor, damageInfo, bodyPart);
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] BossKillPatch error: {ex}"); }
+    }
+}
+
+internal class LootPickupPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.Method(typeof(Player), nameof(Player.OnItemAddedOrRemoved));
+    }
+
+    [PatchPostfix]
+    private static void PatchPostfix(Player __instance, Item item, ItemAddress location, bool added)
+    {
+        try
+        {
+            if (__instance.Location == "hideout") return;
+            if (!added || item == null) return;
+            if (!ReferenceEquals(__instance, Singleton<GameWorld>.Instance?.MainPlayer)) return;
+            // Only report items found in raid (FIR) — skip items the player brought in
+            if (!item.SpawnedInSession) return;
+
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] LootPickupPatch: item={item.LocalizedName()}, tpl={item.TemplateId}, fir=True, location={location?.Container?.ID}");
+
+            ClientEventReporter.Instance?.ReportLoot(item);
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] LootPickupPatch error: {ex}"); }
+    }
+}
+
+internal class QuestCompletionPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.Method(typeof(QuestControllerClientBackend), "FinishQuest");
+    }
+
+    [PatchPostfix]
+    private static void PatchPostfix(Quest quest, bool runNetworkTransaction)
+    {
+        try
+        {
+            if (quest == null || quest.QuestStatus != EQuestStatus.Success) return;
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] QuestCompletionPatch fired: {quest.Template?.Name ?? quest.Id}");
+            ClientEventReporter.Instance?.ReportQuest(quest.Template?.Name ?? quest.Id, "Unknown");
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] QuestCompletionPatch error: {ex}"); }
     }
 }

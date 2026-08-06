@@ -24,10 +24,12 @@ public sealed class DiscordWebhookService(ConfigService config, ScreenshotServic
     {
         await foreach (var eventData in _queue.Reader.ReadAllAsync(token))
         {
+            log.Info($"Processing event: type={eventData.Type}, player={eventData.Player}");
             foreach (var destination in config.Local.Webhooks.Where(x => Uri.TryCreate(x.Url, UriKind.Absolute, out _)))
             {
                 if (!config.IsEnabled(destination, eventData.Type, eventData)) continue;
-                try { var image = config.IsScreenshotEnabled(destination, eventData.Type) ? await screenshots.ReadAsync(eventData, token).ConfigureAwait(false) : null; await SendAsync(destination, eventData, image, token).ConfigureAwait(false); }
+                log.Info($"Sending {eventData.Type} to webhook '{destination.Name}' at {destination.Url[..Math.Min(50, destination.Url.Length)]}...");
+                try { var image = config.IsScreenshotEnabled(destination, eventData.Type) ? await screenshots.ReadAsync(eventData, token).ConfigureAwait(false) : null; await SendAsync(destination, eventData, image, token).ConfigureAwait(false); log.Info($"Webhook '{destination.Name}' sent successfully."); }
                 catch (Exception ex) { log.Error($"Webhook '{destination.Name}' failed.", ex); }
             }
         }
@@ -53,7 +55,9 @@ public sealed class DiscordWebhookService(ConfigService config, ScreenshotServic
         {
             using var response = await _http.PostAsync(url, content, token).ConfigureAwait(false);
             if (response.IsSuccessStatusCode) return;
-            if (attempt >= Math.Max(0, config.Local.MaxRetries) || ((int)response.StatusCode < 500 && response.StatusCode != (HttpStatusCode)429)) throw new HttpRequestException($"Discord returned {(int)response.StatusCode}.");
+            var body = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+            log.Warning($"Discord response: {(int)response.StatusCode} {response.StatusCode} - {body}");
+            if (attempt >= Math.Max(0, config.Local.MaxRetries) || ((int)response.StatusCode < 500 && response.StatusCode != (HttpStatusCode)429)) throw new HttpRequestException($"Discord returned {(int)response.StatusCode}: {body}");
             var delay = response.StatusCode == (HttpStatusCode)429 ? TimeSpan.FromSeconds(2) : TimeSpan.FromSeconds(Math.Pow(2, attempt + 1));
             await Task.Delay(delay, token).ConfigureAwait(false);
         }
