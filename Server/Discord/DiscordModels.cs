@@ -4,7 +4,7 @@ namespace DiscordRaidFeed.Server.Discord;
 
 public sealed class DiscordWebhookPayload
 {
-    [JsonPropertyName("username")] public string Username { get; set; } = "Discord Raid Feed";
+    [JsonPropertyName("username")] public string Username { get; set; } = "Raid Feed";
     [JsonPropertyName("embeds")] public List<DiscordEmbed> Embeds { get; set; } = [];
 }
 public sealed class DiscordEmbed
@@ -18,5 +18,5 @@ public sealed class DiscordEmbed
     [JsonPropertyName("image")] public DiscordEmbedImage? Image { get; set; }
 }
 public sealed class DiscordEmbedField { [JsonPropertyName("name")] public string Name { get; set; } = ""; [JsonPropertyName("value")] public string Value { get; set; } = ""; [JsonPropertyName("inline")] public bool Inline { get; set; } = true; }
-public sealed class DiscordEmbedFooter { [JsonPropertyName("text")] public string Text { get; set; } = "Discord Raid Feed"; }
+public sealed class DiscordEmbedFooter { [JsonPropertyName("text")] public string Text { get; set; } = "4.1.2 Discord Raid Feed"; }
 public sealed class DiscordEmbedImage { [JsonPropertyName("url")] public string Url { get; set; } = ""; }

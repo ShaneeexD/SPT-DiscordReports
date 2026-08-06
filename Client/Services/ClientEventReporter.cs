@@ -358,9 +358,9 @@ public sealed class ClientEventReporter : MonoBehaviour
         if (!_reportedLoot.Add(item.Id.ToString())) return;
 
         var itemName = item.LocalizedName();
-        var value = 0d;
-        try { value = Singleton<Handbook>.Instance.GetBasePrice(item.TemplateId) * Math.Max(1, item.StackObjectsCount); } catch { }
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Loot picked up: item={itemName}, value={value}");
+        // Sum the value of the item plus all its children (attachments, mods, contents)
+        var value = ItemTreeValue(item);
+        Plugin.Log.LogInfo($"[DiscordRaidFeed] Loot picked up: item={itemName}, value={value} (incl. children)");
         Enqueue(new RaidEventPayload
         {
             Type = RaidEventType.Loot,
@@ -373,6 +373,7 @@ public sealed class ClientEventReporter : MonoBehaviour
                 ["Item"] = itemName,
                 ["Quantity"] = item.StackObjectsCount.ToString(),
                 ["Value"] = FormatValue((long)value),
+                ["ValueRaw"] = ((long)value).ToString(),
             },
             Screenshot = false, // Already captured in prefix
             ScreenshotPath = screenshotPath
@@ -505,6 +506,23 @@ public sealed class ClientEventReporter : MonoBehaviour
     }
 
     private static string FormatValue(long value) => value >= 1000000 ? $"{value / 1000000.0:0.##}M ₽" : value >= 1000 ? $"{value / 1000.0:0.#}k ₽" : $"{value} ₽";
+
+    // Sums the handbook price of an item and all its children (attachments, mods, contained items).
+    private static double ItemTreeValue(Item item)
+    {
+        try
+        {
+            var handbook = Singleton<Handbook>.Instance;
+            var total = 0d;
+            foreach (var it in item.GetAllItems())
+            {
+                if (it == null) continue;
+                try { total += handbook.GetBasePrice(it.TemplateId) * Math.Max(1, it.StackObjectsCount); } catch { }
+            }
+            return total;
+        }
+        catch { return 0; }
+    }
 
     private void Enqueue(RaidEventPayload payload)
     {

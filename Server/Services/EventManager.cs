@@ -14,8 +14,13 @@ public sealed class EventManager(DiscordWebhookService discord, ConfigService co
         try
         {
             log.Info($"Publish called: type={eventData.Type}, player={eventData.Player}, map={eventData.Map}, raidTime={eventData.RaidTimeSeconds}s");
-            if (eventData.Type == RaidEventType.Loot && eventData.Fields.TryGetValue("Value", out var value) && long.TryParse(value.Replace("₽", "").Replace(",", ""), NumberStyles.Integer, CultureInfo.InvariantCulture, out var amount))
+            if (eventData.Type == RaidEventType.Loot)
             {
+                long amount = 0;
+                if (eventData.Fields.TryGetValue("ValueRaw", out var raw) && long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+                    amount = parsed;
+                else if (eventData.Fields.TryGetValue("Value", out var value) && long.TryParse(value.Replace("₽", "").Replace(",", "").Replace("k", "").Replace("M", "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed))
+                    amount = parsed;
                 if (!config.Local.Webhooks.Any(destination => config.Get(destination).Settings.Loot.MinimumValue <= amount))
                 {
                     log.Warning($"Loot event dropped: value {amount} below all configured minimums");
