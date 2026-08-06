@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "webhooks": [
+    {
+      "name": "Main Discord",
+      "url": "WEBHOOK_URL",
+      "configUrl": "GITHUB_RAW_JSON_URL"
+    }
+  ],
+  "refreshIntervalMinutes": 30,
+  "requestTimeoutSeconds": 15,
+  "maxRetries": 3
+}

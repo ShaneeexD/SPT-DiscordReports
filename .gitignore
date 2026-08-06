@@ -1,0 +1,47 @@
+# Visual Studio / IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.deps.json
+*.runtimeconfig.json
+
+# Preserve source project files and documentation
+!Client/
+!Server/
+!README.md
+!*.csproj
+!*.cs
+!*.md
+
+# Build/deployment staging output
+/Server/Build/
+/Client/bin/
+/Client/obj/
+/Server/bin/
+/Server/obj/
+# Generated local/runtime data
+/Server/config/cache/
+**/logs/
+*.log
+*.tmp
+*.temp
+
+# Local BepInEx configuration and generated mod settings
+/BepInEx/
+/Server/user/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
