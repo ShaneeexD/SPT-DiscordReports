@@ -1,7 +1,7 @@
 using SPTarkov.Common.Models.Logging;
 using SPTarkov.DI.Annotations;
 
-namespace SPTDiscordReports.Server.Utils;
+namespace DiscordRaidFeed.Server.Utils;
 
 [Injectable(InjectionType.Singleton)]
 public sealed class Log(ISptLogger<Log> logger)

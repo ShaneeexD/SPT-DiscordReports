@@ -1,8 +1,8 @@
 {
-  "name": "spt-discord-raid-feed",
+  "name": "discord-raid-feed",
   "author": "ShaneeexD",
   "version": "1.0.0",
   "license": "MIT",
-  "main": "SPTDiscordReports.Server.dll",
+  "main": "DiscordRaidFeed.Server.dll",
   "sptVersion": "~4.1.0"
 }

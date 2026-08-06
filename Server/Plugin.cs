@@ -4,20 +4,20 @@ using SPTarkov.Server.Core.DI;
 using SPTarkov.Server.Core.Helpers.Server;
 using SPTarkov.Server.Core.Models.Spt.Mod;
 using SPTarkov.Server.Core.Utils;
-using SPTDiscordReports.Server.Config;
-using SPTDiscordReports.Server.Discord;
-using SPTDiscordReports.Server.Patches;
-using SPTDiscordReports.Server.Services;
-using SPTDiscordReports.Server.Utils;
+using DiscordRaidFeed.Server.Config;
+using DiscordRaidFeed.Server.Discord;
+using DiscordRaidFeed.Server.Patches;
+using DiscordRaidFeed.Server.Services;
+using DiscordRaidFeed.Server.Utils;
 using Version = SemanticVersioning.Version;
 using Range = SemanticVersioning.Range;
 
-namespace SPTDiscordReports.Server;
+namespace DiscordRaidFeed.Server;
 
 public sealed record DiscordRaidFeedMetadata : IModMetadata
 {
-    public string ModGuid { get; init; } = "com.shaneeexd.spt-discord-raid-feed";
-    public string Name { get; init; } = "SPT Discord Raid Feed";
+    public string ModGuid { get; init; } = "com.shaneeexd.discord-raid-feed";
+    public string Name { get; init; } = "Discord Raid Feed";
     public string Author { get; init; } = "ShaneeexD";
     public List<string> Contributors { get; init; } = [];
     public Version Version { get; init; } = new("1.0.0");

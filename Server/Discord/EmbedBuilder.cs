@@ -1,7 +1,7 @@
-using SPTDiscordReports.Server.Events;
-using SPTDiscordReports.Server.Utils;
+using DiscordRaidFeed.Server.Events;
+using DiscordRaidFeed.Server.Utils;
 
-namespace SPTDiscordReports.Server.Discord;
+namespace DiscordRaidFeed.Server.Discord;
 
 public static class EmbedBuilder
 {

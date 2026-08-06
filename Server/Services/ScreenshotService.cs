@@ -1,8 +1,8 @@
 using SPTarkov.DI.Annotations;
-using SPTDiscordReports.Server.Events;
-using SPTDiscordReports.Server.Utils;
+using DiscordRaidFeed.Server.Events;
+using DiscordRaidFeed.Server.Utils;
 
-namespace SPTDiscordReports.Server.Services;
+namespace DiscordRaidFeed.Server.Services;
 
 [Injectable(InjectionType.Singleton)]
 public sealed class ScreenshotService(Log log)

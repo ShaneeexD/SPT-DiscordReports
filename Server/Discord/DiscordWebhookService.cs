@@ -3,12 +3,12 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using SPTarkov.DI.Annotations;
-using SPTDiscordReports.Server.Config;
-using SPTDiscordReports.Server.Events;
-using SPTDiscordReports.Server.Services;
-using SPTDiscordReports.Server.Utils;
+using DiscordRaidFeed.Server.Config;
+using DiscordRaidFeed.Server.Events;
+using DiscordRaidFeed.Server.Services;
+using DiscordRaidFeed.Server.Utils;
 
-namespace SPTDiscordReports.Server.Discord;
+namespace DiscordRaidFeed.Server.Discord;
 
 [Injectable(InjectionType.Singleton)]
 public sealed class DiscordWebhookService(ConfigService config, ScreenshotService screenshots, Log log) : IAsyncDisposable

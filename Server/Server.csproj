@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <Import Project="..\..\SPT API 4.1.0\server-csharp-main\server-csharp-main\Build.props" />
   <PropertyGroup>
-    <AssemblyName>SPTDiscordReports.Server</AssemblyName>
-    <RootNamespace>SPTDiscordReports.Server</RootNamespace>
+    <AssemblyName>DiscordRaidFeed.Server</AssemblyName>
+    <RootNamespace>DiscordRaidFeed.Server</RootNamespace>
     <OutputType>Library</OutputType>
   </PropertyGroup>
   <ItemGroup>
@@ -16,7 +16,7 @@
     <None Include="package.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="DeployMod" AfterTargets="PostBuildEvent">
-    <PropertyGroup><DeployDir>C:\SPT\SPT_Runtime\user\mods\SPTDiscordReports</DeployDir></PropertyGroup>
+    <PropertyGroup><DeployDir>C:\SPT\SPT_Runtime\user\mods\DiscordRaidFeed</DeployDir></PropertyGroup>
     <RemoveDir Directories="$(DeployDir)" />
     <MakeDir Directories="$(DeployDir)\config" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployDir)" />

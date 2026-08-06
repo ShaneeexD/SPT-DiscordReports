@@ -1,4 +1,4 @@
-namespace SPTDiscordReports.Server.Utils;
+namespace DiscordRaidFeed.Server.Utils;
 
 public static class MapNames
 {

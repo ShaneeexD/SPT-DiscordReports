@@ -8,9 +8,9 @@ using EFT.Quests;
 using EFT.UI.SessionEnd;
 using HarmonyLib;
 using SPT.Reflection.Patching;
-using SPTDiscordReports.Client.Services;
+using DiscordRaidFeed.Client.Services;
 
-namespace SPTDiscordReports.Client.Patches;
+namespace DiscordRaidFeed.Client.Patches;
 
 internal class RaidStartPatch : ModulePatch
 {

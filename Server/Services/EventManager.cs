@@ -1,10 +1,10 @@
 using System.Globalization;
 using SPTarkov.DI.Annotations;
-using SPTDiscordReports.Server.Discord;
-using SPTDiscordReports.Server.Events;
-using SPTDiscordReports.Server.Utils;
+using DiscordRaidFeed.Server.Discord;
+using DiscordRaidFeed.Server.Events;
+using DiscordRaidFeed.Server.Utils;
 
-namespace SPTDiscordReports.Server.Services;
+namespace DiscordRaidFeed.Server.Services;
 
 [Injectable(InjectionType.Singleton)]
 public sealed class EventManager(DiscordWebhookService discord, ConfigService config, Log log)

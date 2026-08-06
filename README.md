@@ -1,6 +1,6 @@
-# SPT Discord Raid Feed
+# Discord Raid Feed
 
-SPT Discord Raid Feed is a local SPT server/client mod that posts raid activity to Discord through Discord Webhooks.
+Discord Raid Feed is a local SPT server/client mod that posts raid activity to Discord through Discord Webhooks.
 
 The server mod owns the webhook configuration and remote community settings. The optional client mod detects events that are only available inside the game client and sends them to the local SPT server.
 
@@ -244,7 +244,7 @@ Loot notifications are filtered by `settings.loot.minimumValue`. The client calc
 
 Verify:
 
-- `SPTDiscordReports.Client.dll` is in `BepInEx/plugins/SPTDiscordReports`.
+- `DiscordRaidFeed.Client.dll` is in `BepInEx/plugins/DiscordRaidFeed`.
 - BepInEx loaded the plugin without a Harmony error.
 - `ServerUrl` points to the running SPT server.
 - The server mod is installed and loaded.

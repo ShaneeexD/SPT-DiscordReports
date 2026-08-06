@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using SPTarkov.Server.Core.Models.Utils;
 
-namespace SPTDiscordReports.Server.Events;
+namespace DiscordRaidFeed.Server.Events;
 
 public sealed class RaidEventRequest : IRequestData
 {

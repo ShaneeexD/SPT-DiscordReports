@@ -1,6 +1,6 @@
 using SPTarkov.DI.Annotations;
 
-namespace SPTDiscordReports.Server.Services;
+namespace DiscordRaidFeed.Server.Services;
 
 [Injectable(InjectionType.Singleton)]
 public sealed class RaidTracker

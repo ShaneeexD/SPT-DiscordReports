@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace SPTDiscordReports.Server.Config;
+namespace DiscordRaidFeed.Server.Config;
 
 public sealed class LocalConfig
 {

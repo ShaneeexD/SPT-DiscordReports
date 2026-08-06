@@ -4,9 +4,9 @@ using SPTarkov.Reflection.Patching;
 using SPTarkov.Server.Core.Controllers;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Match;
-using SPTDiscordReports.Server.Services;
+using DiscordRaidFeed.Server.Services;
 
-namespace SPTDiscordReports.Server.Patches;
+namespace DiscordRaidFeed.Server.Patches;
 
 public sealed class RaidStartPatch : AbstractPatch
 {
@@ -58,9 +58,9 @@ public sealed class RaidEndPatch : AbstractPatch
     internal static DependenciesHolder? Dependencies;
 }
 
-internal sealed class DependenciesHolder(RaidTracker tracker, EventManager events, SPTDiscordReports.Server.Utils.Log log)
+internal sealed class DependenciesHolder(RaidTracker tracker, EventManager events, DiscordRaidFeed.Server.Utils.Log log)
 {
     public RaidTracker Tracker { get; } = tracker;
     public EventManager Events { get; } = events;
-    public SPTDiscordReports.Server.Utils.Log Logger { get; } = log;
+    public DiscordRaidFeed.Server.Utils.Log Logger { get; } = log;
 }

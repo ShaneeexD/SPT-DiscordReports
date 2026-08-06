@@ -13,7 +13,7 @@ using EFT.InventoryLogic;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace SPTDiscordReports.Client.Services;
+namespace DiscordRaidFeed.Client.Services;
 
 public sealed class ClientEventReporter : MonoBehaviour
 {
@@ -27,6 +27,7 @@ public sealed class ClientEventReporter : MonoBehaviour
     // Cached player data — updated every frame while raid is active, because Player/GameWorld
     // objects are destroyed by the time GameWorld.OnDestroy fires.
     private string _cachedPlayerName = "Unknown";
+    private string _cachedProfileId = "";
     private int _cachedLevel;
     private string _cachedMap = "Unknown";
     private bool _cachedIsAlive;
@@ -120,7 +121,7 @@ public sealed class ClientEventReporter : MonoBehaviour
         if (Instance != null) return Instance;
         // Instance was lost (GameObject destroyed during scene transition). Create a new one.
         Plugin.Log.LogWarning("[DiscordRaidFeed] Instance was null, recreating ClientEventReporter GameObject");
-        var host = new GameObject("SPTDiscordReportsClient_Restored");
+        var host = new GameObject("DiscordRaidFeedClient_Restored");
         UnityEngine.Object.DontDestroyOnLoad(host);
         return host.AddComponent<ClientEventReporter>();
     }
@@ -205,6 +206,7 @@ public sealed class ClientEventReporter : MonoBehaviour
 
         var player = world.MainPlayer;
         _cachedPlayerName = NameOf(player);
+        _cachedProfileId = player?.ProfileId ?? "";
         _cachedLevel = player?.Profile?.Info?.Level ?? 0;
         _cachedMap = MapName(world.LocationId);
         _cachedIsAlive = true;
@@ -506,6 +508,13 @@ public sealed class ClientEventReporter : MonoBehaviour
 
     private void Enqueue(RaidEventPayload payload)
     {
+        // Skip posting for SPT Developer profiles (unless username is "Dev2")
+        if (Plugin.DevProfileIds.Contains(_cachedProfileId))
+        {
+            Plugin.Log.LogDebug($"[DiscordRaidFeed] Skipping event {payload.Type} for dev profile {_cachedProfileId}");
+            return;
+        }
+
         // Capture screenshot to file (async, no main-thread stutter) before sending
         if (payload.Screenshot)
         {
@@ -521,7 +530,7 @@ public sealed class ClientEventReporter : MonoBehaviour
     {
         try
         {
-            var path = Path.Combine(Application.temporaryCachePath, $"spt-discord-raid-feed-{Guid.NewGuid():N}.png");
+            var path = Path.Combine(Application.temporaryCachePath, $"discord-raid-feed-{Guid.NewGuid():N}.png");
             ScreenCapture.CaptureScreenshot(path);
             Plugin.Log.LogInfo($"[DiscordRaidFeed] Screenshot capturing to file: {path}");
             return path;

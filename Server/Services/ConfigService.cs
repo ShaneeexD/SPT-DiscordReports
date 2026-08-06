@@ -2,10 +2,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using SPTarkov.DI.Annotations;
-using SPTDiscordReports.Server.Config;
-using SPTDiscordReports.Server.Utils;
+using DiscordRaidFeed.Server.Config;
+using DiscordRaidFeed.Server.Utils;
 
-namespace SPTDiscordReports.Server.Services;
+namespace DiscordRaidFeed.Server.Services;
 
 [Injectable(InjectionType.Singleton)]
 public sealed class ConfigService(Log log)

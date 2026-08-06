@@ -1,4 +1,4 @@
-namespace SPTDiscordReports.Server.Config;
+namespace DiscordRaidFeed.Server.Config;
 
 public sealed class RemoteConfig
 {

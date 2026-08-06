@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
-using SPTDiscordReports.Server.Utils;
+using DiscordRaidFeed.Server.Utils;
 
-namespace SPTDiscordReports.Server.Services;
+namespace DiscordRaidFeed.Server.Services;
 
 public sealed class RemoteConfigHostedService(ConfigService config, Log log) : BackgroundService
 {
