@@ -1,0 +1,30 @@
+{
+  "configVersion": 1,
+  "minimumModVersion": "1.0.0",
+  "communityName": "Serenity Community",
+  "settings": {
+    "events": {
+      "deaths": true,
+      "extracts": true,
+      "loot": true,
+      "quests": true,
+      "bossKills": true,
+      "levelUps": true
+    },
+    "loot": {
+      "minimumValue": 20000
+    },
+    "screenshots": {
+      "enabled": true,
+      "deathScreenshots": true,
+      "extractScreenshots": true,
+      "rareLootScreenshots": true,
+      "questScreenshots": true,
+      "bossKillScreenshots": true
+    },
+    "filters": {
+      "minimumRaidDuration": 1,
+      "ignoredMaps": []
+    }
+  }
+}
