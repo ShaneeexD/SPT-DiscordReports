@@ -5,6 +5,7 @@ using EFT;
 using EFT.Ballistics;
 using EFT.InventoryLogic;
 using EFT.Quests;
+using EFT.UI.SessionEnd;
 using HarmonyLib;
 using SPT.Reflection.Patching;
 using SPTDiscordReports.Client.Services;
@@ -48,6 +49,33 @@ internal class RaidEndPatch : ModulePatch
             ClientEventReporter.Instance?.OnRaidEnd();
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] RaidEndPatch error: {ex}"); }
+    }
+}
+
+internal class RaidStopPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        // Patch SessionResultExitStatus.Show which receives ExitStatus as a parameter.
+        // This is the post-raid screen that shows "Survived"/"Killed"/"Run Through".
+        var showMethod = AccessTools.Method(typeof(SessionResultExitStatus), "Show", new[] {
+            typeof(Profile), typeof(PlayerVisualRepresentation), typeof(ESideType),
+            typeof(ExitStatus), typeof(TimeSpan), typeof(IEftSession), typeof(bool)
+        });
+        if (showMethod == null)
+            Plugin.Log.LogWarning("[DiscordRaidFeed] Could not find SessionResultExitStatus.Show method");
+        return showMethod!;
+    }
+
+    [PatchPrefix]
+    private static void PatchPrefix(ExitStatus exitStatus)
+    {
+        try
+        {
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] RaidStopPatch fired (SessionResultExitStatus.Show): exitStatus={exitStatus}");
+            ClientEventReporter.Instance?.OnRaidStop(exitStatus);
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] RaidStopPatch error: {ex}"); }
     }
 }
 

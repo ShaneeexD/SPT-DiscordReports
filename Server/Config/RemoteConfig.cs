@@ -20,6 +20,7 @@ public sealed class EventSettings
 {
     public bool Deaths { get; set; } = true;
     public bool Extracts { get; set; } = true;
+    public bool RunThroughs { get; set; } = true;
     public bool Loot { get; set; } = true;
     public bool Quests { get; set; } = true;
     public bool BossKills { get; set; } = true;

@@ -39,6 +39,7 @@ public sealed class Plugin : BaseUnityPlugin
             Log.LogInfo("Enabling patches...");
             new RaidStartPatch().Enable();
             new RaidEndPatch().Enable();
+            new RaidStopPatch().Enable();
             new PlayerDeathPatch().Enable();
             new BossKillPatch().Enable();
             new LootPickupPatch().Enable();

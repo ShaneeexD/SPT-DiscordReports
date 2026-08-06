@@ -1,6 +1,6 @@
 namespace SPTDiscordReports.Server.Events;
 
-public enum RaidEventType { Death, Extract, Loot, Quest, BossKill, LevelUp }
+public enum RaidEventType { Death, Extract, RunThrough, Loot, Quest, BossKill, LevelUp }
 
 public sealed record RaidEvent
 {

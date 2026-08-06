@@ -33,6 +33,11 @@ public sealed class ClientEventReporter : MonoBehaviour
     private long _cachedFirValue;
     private long _cachedTotalValue;
     private string _cachedKillerName = "Unknown";
+    private ExitStatus _cachedExitStatus = ExitStatus.Survived;
+    // Delayed screenshot capture for extract/death — wait for SessionResultExitStatus UI + 1s
+    private RaidEventPayload? _pendingRaidEndEvent;
+    private float _raidEndTimeoutAt;
+    private float _raidEndCaptureAt;
 
     private static readonly Dictionary<string, string> MapNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -112,6 +117,25 @@ public sealed class ClientEventReporter : MonoBehaviour
                 }
             }
 
+            // Wait for SessionResultExitStatus.Show to fire + 1s delay before capturing raid-end screenshot
+            if (_pendingRaidEndEvent != null)
+            {
+                if (_raidEndCaptureAt > 0 && Time.time >= _raidEndCaptureAt)
+                {
+                    var evt = _pendingRaidEndEvent;
+                    _pendingRaidEndEvent = null;
+                    Plugin.Log.LogInfo($"[DiscordRaidFeed] Capturing screenshot for {evt.Type} (1s after UI shown)");
+                    Enqueue(evt);
+                }
+                else if (Time.time >= _raidEndTimeoutAt)
+                {
+                    var evt = _pendingRaidEndEvent;
+                    _pendingRaidEndEvent = null;
+                    Plugin.Log.LogWarning($"[DiscordRaidFeed] Timeout waiting for SessionResultExitStatus, sending {evt.Type} anyway");
+                    Enqueue(evt);
+                }
+            }
+
             // Events are sent immediately via background thread in Enqueue()
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] Update error: {ex}"); }
@@ -144,53 +168,92 @@ public sealed class ClientEventReporter : MonoBehaviour
         Plugin.Log.LogInfo($"[DiscordRaidFeed] Player death detected: killer={_cachedKillerName}");
     }
 
+    public void OnRaidStop(ExitStatus exitStatus)
+    {
+        _cachedExitStatus = exitStatus;
+        Plugin.Log.LogInfo($"[DiscordRaidFeed] Raid stop detected: exitStatus={exitStatus}");
+
+        // Update the pending raid-end event with the correct exit status
+        if (_pendingRaidEndEvent != null)
+        {
+            // Redetermine event type based on exit status
+            if (!_cachedIsAlive)
+            {
+                _pendingRaidEndEvent.Type = RaidEventType.Death;
+            }
+            else if (exitStatus == ExitStatus.Runner)
+            {
+                _pendingRaidEndEvent.Type = RaidEventType.RunThrough;
+            }
+            else
+            {
+                _pendingRaidEndEvent.Type = RaidEventType.Extract;
+            }
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Updated pending event type to {_pendingRaidEndEvent.Type}");
+
+            // Set 1s delay for screenshot capture (let the UI fully render)
+            _raidEndCaptureAt = Time.time + 1f;
+        }
+    }
+
     public void OnRaidEnd()
     {
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] OnRaidEnd called: _inRaid={_inRaid}, _raidEnded={_raidEnded}, player={_cachedPlayerName}, isAlive={_cachedIsAlive}");
+        Plugin.Log.LogInfo($"[DiscordRaidFeed] OnRaidEnd called: _inRaid={_inRaid}, _raidEnded={_raidEnded}, player={_cachedPlayerName}, isAlive={_cachedIsAlive}, exitStatus={_cachedExitStatus}");
 
         if (!_inRaid || _raidEnded) return;
         _raidEnded = true;
 
         var raidTime = Time.time - _raidStartedAt;
 
-        if (_cachedIsAlive)
+        // Determine event type based on exit status and alive state
+        RaidEventType eventType;
+        Dictionary<string, string> fields;
+        if (!_cachedIsAlive)
         {
-            // Extraction
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting extract: firValue={_cachedFirValue}, totalValue={_cachedTotalValue}, raidTime={raidTime}s");
-            Enqueue(new RaidEventPayload
+            eventType = RaidEventType.Death;
+            fields = new Dictionary<string, string>
             {
-                Type = RaidEventType.Extract,
-                Player = _cachedPlayerName,
-                Level = _cachedLevel,
-                Map = _cachedMap,
-                RaidTimeSeconds = raidTime,
-                Fields = new Dictionary<string, string>
-                {
-                    ["FIR Loot Value"] = FormatValue(_cachedFirValue),
-                    ["Total Inventory Value"] = FormatValue(_cachedTotalValue),
-                },
-                Screenshot = Plugin.Screenshots.Value
-            });
+                ["Killer"] = _cachedKillerName,
+                ["Gear Value Lost"] = FormatValue(_cachedTotalValue),
+            };
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting death: killer={_cachedKillerName}, gearValue={_cachedTotalValue}, raidTime={raidTime}s");
+        }
+        else if (_cachedExitStatus == ExitStatus.Runner)
+        {
+            eventType = RaidEventType.RunThrough;
+            fields = new Dictionary<string, string>
+            {
+                ["FIR Loot Value"] = FormatValue(_cachedFirValue),
+                ["Total Inventory Value"] = FormatValue(_cachedTotalValue),
+            };
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting run-through: firValue={_cachedFirValue}, totalValue={_cachedTotalValue}, raidTime={raidTime}s");
         }
         else
         {
-            // Death
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting death: killer={_cachedKillerName}, gearValue={_cachedTotalValue}, raidTime={raidTime}s");
-            Enqueue(new RaidEventPayload
+            eventType = RaidEventType.Extract;
+            fields = new Dictionary<string, string>
             {
-                Type = RaidEventType.Death,
-                Player = _cachedPlayerName,
-                Level = _cachedLevel,
-                Map = _cachedMap,
-                RaidTimeSeconds = raidTime,
-                Fields = new Dictionary<string, string>
-                {
-                    ["Killer"] = _cachedKillerName,
-                    ["Gear Value Lost"] = FormatValue(_cachedTotalValue),
-                },
-                Screenshot = Plugin.Screenshots.Value
-            });
+                ["FIR Loot Value"] = FormatValue(_cachedFirValue),
+                ["Total Inventory Value"] = FormatValue(_cachedTotalValue),
+            };
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting extract: firValue={_cachedFirValue}, totalValue={_cachedTotalValue}, raidTime={raidTime}s");
         }
+
+        // Delay screenshot capture for extract/death/run-through — capture after scene transition
+        // so we get the raid ended screen instead of the loading screen
+        _pendingRaidEndEvent = new RaidEventPayload
+        {
+            Type = eventType,
+            Player = _cachedPlayerName,
+            Level = _cachedLevel,
+            Map = _cachedMap,
+            RaidTimeSeconds = raidTime,
+            Fields = fields,
+            Screenshot = Plugin.Screenshots.Value
+        };
+        _raidEndTimeoutAt = Time.time + 20f; // 20s timeout fallback if SessionResultExitStatus never shows
+        _raidEndCaptureAt = 0f; // Will be set by OnRaidStop when SessionResultExitStatus.Show fires
+        Plugin.Log.LogInfo($"[DiscordRaidFeed] Raid end event queued, waiting for SessionResultExitStatus.Show (20s timeout)");
 
         _inRaid = false;
     }
@@ -318,10 +381,10 @@ public sealed class ClientEventReporter : MonoBehaviour
 
     private void Enqueue(RaidEventPayload payload)
     {
-        // Capture screenshot on the main thread (Unity API requirement) before sending
+        // Capture screenshot to file (async, no main-thread stutter) before sending
         if (payload.Screenshot)
         {
-            payload.ScreenshotBase64 = CaptureScreenshotBase64();
+            payload.ScreenshotPath = CaptureScreenshotToFile();
             payload.Screenshot = false;
         }
         // Send immediately on a background thread — don't rely on Update/coroutine
@@ -329,20 +392,14 @@ public sealed class ClientEventReporter : MonoBehaviour
         Task.Run(() => SendEventAsync(payload));
     }
 
-    private static string? CaptureScreenshotBase64()
+    private static string? CaptureScreenshotToFile()
     {
         try
         {
-            var width = Screen.width;
-            var height = Screen.height;
-            var tex = new Texture2D(width, height, TextureFormat.RGB24, false);
-            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-            tex.Apply();
-            var bytes = tex.EncodeToPNG();
-            UnityEngine.Object.Destroy(tex);
-            var base64 = Convert.ToBase64String(bytes);
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Screenshot captured: {bytes.Length} bytes, base64 length={base64.Length}");
-            return base64;
+            var path = Path.Combine(Application.temporaryCachePath, $"spt-discord-raid-feed-{Guid.NewGuid():N}.png");
+            ScreenCapture.CaptureScreenshot(path);
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Screenshot capturing to file: {path}");
+            return path;
         }
         catch (Exception ex)
         {
@@ -357,8 +414,32 @@ public sealed class ClientEventReporter : MonoBehaviour
     {
         try
         {
+            // If screenshot was captured to file, wait for it to be written then read+encode on background thread
+            if (!string.IsNullOrEmpty(payload.ScreenshotPath))
+            {
+                // ScreenCapture.CaptureScreenshot writes asynchronously — wait for the file
+                for (var i = 0; i < 30; i++)
+                {
+                    if (File.Exists(payload.ScreenshotPath) && new FileInfo(payload.ScreenshotPath).Length > 0)
+                        break;
+                    await Task.Delay(100);
+                }
+                try
+                {
+                    if (File.Exists(payload.ScreenshotPath))
+                    {
+                        var bytes = File.ReadAllBytes(payload.ScreenshotPath);
+                        payload.ScreenshotBase64 = Convert.ToBase64String(bytes);
+                        Plugin.Log.LogInfo($"[DiscordRaidFeed] Screenshot read: {bytes.Length} bytes, base64 length={payload.ScreenshotBase64.Length}");
+                        try { File.Delete(payload.ScreenshotPath); } catch { }
+                    }
+                }
+                catch (Exception ex) { Plugin.Log.LogWarning($"[DiscordRaidFeed] Screenshot read failed: {ex.Message}"); }
+                payload.ScreenshotPath = null;
+            }
+
             var json = JsonConvert.SerializeObject(payload, Formatting.None);
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Sending event to server: {payload.Type}, json={json}");
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Sending event to server: {payload.Type}, json length={json.Length}");
 
             var url = Plugin.ServerUrl.Value.TrimEnd('/') + "/client/discordraidfeed/event";
             var session = GetSessionId();
@@ -402,7 +483,8 @@ public sealed class ClientEventReporter : MonoBehaviour
         [JsonProperty("fields")] public Dictionary<string, string> Fields { get; set; } = new();
         [JsonProperty("screenshotBase64")] public string? ScreenshotBase64 { get; set; }
         [JsonIgnore] public bool Screenshot { get; set; }
+        [JsonIgnore] public string? ScreenshotPath { get; set; }
     }
 
-    private enum RaidEventType { Death, Extract, Loot, Quest, BossKill, LevelUp }
+    private enum RaidEventType { Death, Extract, RunThrough, Loot, Quest, BossKill, LevelUp }
 }

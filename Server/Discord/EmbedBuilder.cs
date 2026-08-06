@@ -11,6 +11,7 @@ public static class EmbedBuilder
         {
             RaidEventType.Death => ("☠ Operator Down", 0xD32F2F),
             RaidEventType.Extract => ("✅ Successful Extraction", 0x43A047),
+            RaidEventType.RunThrough => ("🏃 Run Through", 0xFF9800),
             RaidEventType.Loot => ("💎 Rare Loot Found", 0x8E44AD),
             RaidEventType.Quest => ("📋 Quest Complete", 0x1976D2),
             RaidEventType.BossKill => ("👑 Boss Eliminated", 0xF9A825),
