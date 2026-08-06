@@ -12,7 +12,7 @@
       "levelUps": true
     },
     "loot": {
-      "minimumValue": 200000
+      "minimumValue": 20000
     },
     "screenshots": {
       "enabled": true,
