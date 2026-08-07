@@ -268,6 +268,6 @@ Gameplay continues normally. The server logs the failure and retries transient D
 - Do not put webhook URLs in a public GitHub configuration file.
 - Screenshots are sent to the configured Discord communities when enabled.
 - The mod does not create user accounts or send data to a hosted service.
-- Community owners should only share webhook access with trusted server administrators.
+- Community owners should only share webhook access with trusted community members in their discord server.
 
 
