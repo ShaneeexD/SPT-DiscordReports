@@ -6,13 +6,15 @@
     "events": {
       "deaths": true,
       "extracts": true,
+      "runThroughs": true,
       "loot": true,
       "quests": true,
       "bossKills": true,
-      "levelUps": true
+      "levelUps": true,
+      "achievements": true
     },
     "loot": {
-      "minimumValue": 20000
+      "minimumValue": 200000
     },
     "screenshots": {
       "enabled": true,
@@ -20,7 +22,8 @@
       "extractScreenshots": true,
       "rareLootScreenshots": true,
       "questScreenshots": true,
-      "bossKillScreenshots": true
+      "bossKillScreenshots": true,
+      "achievementScreenshots": true
     },
     "filters": {
       "minimumRaidDuration": 1,
