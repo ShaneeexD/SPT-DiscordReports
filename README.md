@@ -113,7 +113,7 @@ The repository and file can be public or otherwise reachable by the SPT installa
 Edit the deployed server configuration:
 
 ```text
-SPT/user/mods/DiscordRaidFeed/config/config.json
+SPT_Runtime/user/mods/DiscordRaidFeed/config/config.json
 ```
 
 Example with one community:
