@@ -35,7 +35,7 @@ public sealed class ConfigService(Log log)
     public bool IsScreenshotEnabled(WebhookDestination destination, Events.RaidEventType type)
     {
         var s = Get(destination).Settings.Screenshots;
-        return s.Enabled && type switch { Events.RaidEventType.Death => s.DeathScreenshots, Events.RaidEventType.Extract => s.ExtractScreenshots, Events.RaidEventType.RunThrough => s.ExtractScreenshots, Events.RaidEventType.Loot => s.RareLootScreenshots, Events.RaidEventType.Quest => s.QuestScreenshots, Events.RaidEventType.BossKill => s.BossKillScreenshots, _ => false };
+        return s.Enabled && type switch { Events.RaidEventType.Death => s.DeathScreenshots, Events.RaidEventType.Extract => s.ExtractScreenshots, Events.RaidEventType.RunThrough => s.ExtractScreenshots, Events.RaidEventType.Loot => s.RareLootScreenshots, Events.RaidEventType.Quest => s.QuestScreenshots, Events.RaidEventType.BossKill => s.BossKillScreenshots, Events.RaidEventType.Achievement => s.AchievementScreenshots, _ => false };
     }
 
     public bool IsEnabled(WebhookDestination destination, Events.RaidEventType type, Events.RaidEvent e)
@@ -51,7 +51,7 @@ public sealed class ConfigService(Log log)
             log.Info($"Event {type} filtered: map {e.Map} in ignoredMaps for {destination.Name}");
             return false;
         }
-        var enabled = type switch { Events.RaidEventType.Death => s.Events.Deaths, Events.RaidEventType.Extract => s.Events.Extracts, Events.RaidEventType.RunThrough => s.Events.RunThroughs, Events.RaidEventType.Loot => s.Events.Loot, Events.RaidEventType.Quest => s.Events.Quests, Events.RaidEventType.BossKill => s.Events.BossKills, Events.RaidEventType.LevelUp => s.Events.LevelUps, _ => false };
+        var enabled = type switch { Events.RaidEventType.Death => s.Events.Deaths, Events.RaidEventType.Extract => s.Events.Extracts, Events.RaidEventType.RunThrough => s.Events.RunThroughs, Events.RaidEventType.Loot => s.Events.Loot, Events.RaidEventType.Quest => s.Events.Quests, Events.RaidEventType.BossKill => s.Events.BossKills, Events.RaidEventType.LevelUp => s.Events.LevelUps, Events.RaidEventType.Achievement => s.Events.Achievements, _ => false };
         if (!enabled) log.Info($"Event {type} filtered: disabled in remote config for {destination.Name}");
         return enabled;
     }

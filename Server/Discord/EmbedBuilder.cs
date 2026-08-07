@@ -16,6 +16,7 @@ public static class EmbedBuilder
             RaidEventType.Quest => ("📋 Quest Complete", 0x1976D2),
             RaidEventType.BossKill => ("👑 Boss Eliminated", 0xF9A825),
             RaidEventType.LevelUp => ("⬆ Level Up", 0x00897B),
+            RaidEventType.Achievement => ("🏆 Achievement Unlocked", 0xFFD700),
             _ => ("Raid Event", 0x607D8B)
         };
         var embed = new DiscordEmbed { Title = title, Color = color };

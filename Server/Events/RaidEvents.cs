@@ -1,6 +1,6 @@
 namespace DiscordRaidFeed.Server.Events;
 
-public enum RaidEventType { Death, Extract, RunThrough, Loot, Quest, BossKill, LevelUp }
+public enum RaidEventType { Death, Extract, RunThrough, Loot, Quest, BossKill, LevelUp, Achievement }
 
 public sealed record RaidEvent
 {

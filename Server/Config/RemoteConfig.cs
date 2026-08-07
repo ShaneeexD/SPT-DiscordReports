@@ -25,6 +25,7 @@ public sealed class EventSettings
     public bool Quests { get; set; } = true;
     public bool BossKills { get; set; } = true;
     public bool LevelUps { get; set; } = true;
+    public bool Achievements { get; set; } = true;
 }
 public sealed class LootSettings { public long MinimumValue { get; set; } = 500000; }
 public sealed class ScreenshotSettings
@@ -35,6 +36,7 @@ public sealed class ScreenshotSettings
     public bool RareLootScreenshots { get; set; } = true;
     public bool QuestScreenshots { get; set; } = true;
     public bool BossKillScreenshots { get; set; } = true;
+    public bool AchievementScreenshots { get; set; } = true;
 }
 public sealed class FilterSettings
 {

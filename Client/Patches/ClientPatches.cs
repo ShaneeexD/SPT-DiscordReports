@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Comfort.Common;
 using EFT;
+using EFT.Achievements;
 using EFT.Ballistics;
 using EFT.InventoryLogic;
 using EFT.Quests;
@@ -209,4 +210,32 @@ internal class QuestCompletionPatch : ModulePatch
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] QuestCompletionPatch error: {ex}"); }
     }
+}
+
+internal class AchievementCompletionPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        // OnConditionalStatusChangedEvent fires for every achievement status change,
+        // including automatic unlocks (not just manual claims via FinishAchievement).
+        return AccessTools.Method(typeof(AchievementsController), nameof(AchievementsController.OnConditionalStatusChangedEvent));
+    }
+
+    [PatchPostfix]
+    private static void PatchPostfix(Achievement achievement, bool notify)
+    {
+        try
+        {
+            if (achievement == null || !achievement.IsDone()) return;
+            // Avoid duplicate reports for already-unlocked achievements
+            if (!_reportedAchievements.Add(achievement.Id)) return;
+            var name = achievement.Template?.Title ?? achievement.Id;
+            var rarity = achievement.Template?.Rarity.ToString() ?? "Unknown";
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Achievement unlocked: {name} ({rarity})");
+            ClientEventReporter.Instance?.ReportAchievement(name, rarity);
+        }
+        catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] AchievementCompletionPatch error: {ex}"); }
+    }
+
+    private static readonly HashSet<string> _reportedAchievements = new();
 }

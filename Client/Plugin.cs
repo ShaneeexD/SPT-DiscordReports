@@ -24,6 +24,7 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> BossKillEvents = null!;
     internal static ConfigEntry<bool> QuestEvents = null!;
     internal static ConfigEntry<bool> LevelUpEvents = null!;
+    internal static ConfigEntry<bool> AchievementEvents = null!;
 
     // Profile IDs with edition "SPT Developer" (and username != "Dev2") — events from these are skipped.
     internal static readonly System.Collections.Generic.HashSet<string> DevProfileIds = new();
@@ -41,6 +42,7 @@ public sealed class Plugin : BaseUnityPlugin
         BossKillEvents = Config.Bind("Events", "BossKills", true, "Report boss kills.");
         QuestEvents = Config.Bind("Events", "Quests", true, "Report completed quests.");
         LevelUpEvents = Config.Bind("Events", "LevelUps", true, "Report level-ups.");
+        AchievementEvents = Config.Bind("Events", "Achievements", true, "Report achievement unlocks.");
 
         ScanDevProfiles();
 
@@ -54,6 +56,7 @@ public sealed class Plugin : BaseUnityPlugin
             new BossKillPatch().Enable();
             new LootPickupPatch().Enable();
             new QuestCompletionPatch().Enable();
+            new AchievementCompletionPatch().Enable();
             Log.LogInfo("All patches enabled. Creating reporter...");
             var host = new GameObject("DiscordRaidFeedClient");
             DontDestroyOnLoad(host);

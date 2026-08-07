@@ -15,6 +15,7 @@ The server mod handles webhook delivery, remote configuration, and loot threshol
 - Boss and follower kills (with weapon, body part, and distance)
 - Quest completions (with trader name)
 - Level-ups
+- Achievement unlocks (with rarity)
 - Client-side screenshots for supported events
 
 All events are queued and sent asynchronously. Discord failures are logged and do not stop gameplay.
@@ -53,7 +54,8 @@ Create a JSON file in a GitHub repository. For example:
       "loot": true,
       "quests": true,
       "bossKills": true,
-      "levelUps": true
+      "levelUps": true,
+      "achievements": true
     },
     "loot": {
       "minimumValue": 500000
@@ -64,7 +66,8 @@ Create a JSON file in a GitHub repository. For example:
       "extractScreenshots": true,
       "rareLootScreenshots": true,
       "questScreenshots": true,
-      "bossKillScreenshots": true
+      "bossKillScreenshots": true,
+      "achievementScreenshots": true
     },
     "filters": {
       "minimumRaidDuration": 60,

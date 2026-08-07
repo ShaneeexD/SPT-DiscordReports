@@ -40,6 +40,8 @@ public sealed class ClientEventReporter : MonoBehaviour
     private RaidEventPayload? _pendingRaidEndEvent;
     private float _raidEndTimeoutAt;
     private float _raidEndCaptureAt;
+    // Delayed screenshot for achievements — wait 1s for the notification UI to appear
+    private readonly Queue<(RaidEventPayload payload, float captureAt)> _pendingAchievementEvents = new();
 
     private static readonly Dictionary<string, string> MapNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -190,6 +192,14 @@ public sealed class ClientEventReporter : MonoBehaviour
                     Plugin.Log.LogWarning($"[DiscordRaidFeed] Timeout waiting for SessionResultExitStatus, sending {evt.Type} anyway");
                     Enqueue(evt);
                 }
+            }
+
+            // Process pending achievement events — capture screenshot after 1s delay
+            while (_pendingAchievementEvents.Count > 0 && Time.time >= _pendingAchievementEvents.Peek().captureAt)
+            {
+                var (evt, _) = _pendingAchievementEvents.Dequeue();
+                Plugin.Log.LogInfo($"[DiscordRaidFeed] Capturing screenshot for Achievement (1s after unlock)");
+                Enqueue(evt);
             }
 
             // Events are sent immediately via background thread in Enqueue()
@@ -414,6 +424,39 @@ public sealed class ClientEventReporter : MonoBehaviour
             Fields = new Dictionary<string, string> { ["Quest"] = questName, ["Trader"] = trader },
             Screenshot = Plugin.Screenshots.Value
         });
+    }
+
+    public void ReportAchievement(string achievementName, string rarity)
+    {
+        if (!Plugin.AchievementEvents.Value) return;
+        // Achievements can unlock outside raid, so resolve the player name from the cached profile
+        var playerName = _cachedPlayerName;
+        try
+        {
+            var player = Singleton<GameWorld>.Instance?.MainPlayer;
+            if (player?.Profile?.Info?.Nickname != null)
+                playerName = player.Profile.Info.Nickname;
+            else
+            {
+                var sessionId = GetSessionId();
+                if (!string.IsNullOrWhiteSpace(sessionId) && Plugin.ProfileNicknames.TryGetValue(sessionId, out var nick))
+                    playerName = nick;
+                else if (Plugin.ProfileNicknames.Count > 0)
+                    playerName = Plugin.ProfileNicknames.First().Value;
+            }
+        }
+        catch { }
+        Plugin.Log.LogInfo($"[DiscordRaidFeed] Achievement unlocked: {achievementName}, player={playerName}");
+        // Delay screenshot by 1s so the achievement notification UI is visible
+        _pendingAchievementEvents.Enqueue((new RaidEventPayload
+        {
+            Type = RaidEventType.Achievement,
+            Player = playerName,
+            Level = _cachedLevel,
+            Map = _cachedMap,
+            Fields = new Dictionary<string, string> { ["Achievement"] = achievementName, ["Rarity"] = rarity },
+            Screenshot = Plugin.Screenshots.Value
+        }, Time.time + 1f));
     }
 
     private string ResolveKillerName(Player victim)
@@ -658,5 +701,5 @@ public sealed class ClientEventReporter : MonoBehaviour
         [JsonIgnore] public string? ScreenshotPath { get; set; }
     }
 
-    private enum RaidEventType { Death, Extract, RunThrough, Loot, Quest, BossKill, LevelUp }
+    private enum RaidEventType { Death, Extract, RunThrough, Loot, Quest, BossKill, LevelUp, Achievement }
 }
