@@ -27,7 +27,7 @@ internal class RaidStartPatch : ModulePatch
         try
         {
             if (__instance.LocationId == "hideout") return;
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] RaidStartPatch fired: map={__instance.LocationId}, Instance={ClientEventReporter.Instance != null}");
+            Plugin.DebugLog($"[DiscordRaidFeed] RaidStartPatch fired: map={__instance.LocationId}, Instance={ClientEventReporter.Instance != null}");
             var reporter = ClientEventReporter.EnsureInstance();
             reporter?.OnRaidStart(__instance);
         }
@@ -47,7 +47,7 @@ internal class RaidEndPatch : ModulePatch
     {
         try
         {
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] RaidEndPatch fired (GameWorld.OnDestroy), Instance={ClientEventReporter.Instance != null}");
+            Plugin.DebugLog($"[DiscordRaidFeed] RaidEndPatch fired (GameWorld.OnDestroy), Instance={ClientEventReporter.Instance != null}");
             ClientEventReporter.Instance?.OnRaidEnd();
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] RaidEndPatch error: {ex}"); }
@@ -74,7 +74,7 @@ internal class RaidStopPatch : ModulePatch
     {
         try
         {
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] RaidStopPatch fired (SessionResultExitStatus.Show): exitStatus={exitStatus}");
+            Plugin.DebugLog($"[DiscordRaidFeed] RaidStopPatch fired (SessionResultExitStatus.Show): exitStatus={exitStatus}");
             ClientEventReporter.Instance?.OnRaidStop(exitStatus);
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] RaidStopPatch error: {ex}"); }
@@ -96,7 +96,7 @@ internal class PlayerDeathPatch : ModulePatch
             if (__instance.Location == "hideout") return;
             if (!ReferenceEquals(__instance, Singleton<GameWorld>.Instance?.MainPlayer)) return;
             // Local player died — cache killer name and mark as not alive for raid end event
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] PlayerDeathPatch fired: damageType={damageType}");
+            Plugin.DebugLog($"[DiscordRaidFeed] PlayerDeathPatch fired: damageType={damageType}");
             ClientEventReporter.Instance?.OnPlayerDeath(__instance);
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] PlayerDeathPatch error: {ex}"); }
@@ -118,7 +118,7 @@ internal class BossKillPatch : ModulePatch
             if (__instance.Location == "hideout") return;
             var role = __instance.Profile?.Info?.Settings.Role.ToString() ?? "";
             if (role.IndexOf("boss", StringComparison.OrdinalIgnoreCase) < 0 && role.IndexOf("follower", StringComparison.OrdinalIgnoreCase) < 0) return;
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] BossKillPatch fired: boss={role}");
+            Plugin.DebugLog($"[DiscordRaidFeed] BossKillPatch fired: boss={role}");
             ClientEventReporter.Instance?.ReportBossKill(__instance, aggressor, damageInfo, bodyPart);
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] BossKillPatch error: {ex}"); }
@@ -163,7 +163,7 @@ internal class LootPickupPatch : ModulePatch
             if (!ReferenceEquals(__instance, Singleton<GameWorld>.Instance?.MainPlayer)) return;
             if (!item.SpawnedInSession) return;
 
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] LootPickupPatch: item={item.LocalizedName()}, tpl={item.TemplateId}, fir=True, location={location?.Container?.ID}");
+            Plugin.DebugLog($"[DiscordRaidFeed] LootPickupPatch: item={item.LocalizedName()}, tpl={item.TemplateId}, fir=True, location={location?.Container?.ID}");
 
             ClientEventReporter.Instance?.ReportLoot(item, _pendingScreenshotPath);
             _pendingScreenshotPath = null;
@@ -205,7 +205,7 @@ internal class QuestCompletionPatch : ModulePatch
             if (quest == null) return;
             var questName = quest.Template?.Name ?? quest.Id;
             var trader = TraderName(quest.Template?.TraderId);
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Quest completed: {questName} ({trader})");
+            Plugin.DebugLog($"[DiscordRaidFeed] Quest completed: {questName} ({trader})");
             ClientEventReporter.Instance?.ReportQuest(questName, trader);
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] QuestCompletionPatch error: {ex}"); }
@@ -231,7 +231,7 @@ internal class AchievementCompletionPatch : ModulePatch
             if (!_reportedAchievements.Add(achievement.Id)) return;
             var name = achievement.Template?.Title ?? achievement.Id;
             var rarity = achievement.Template?.Rarity.ToString() ?? "Unknown";
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Achievement unlocked: {name} ({rarity})");
+            Plugin.DebugLog($"[DiscordRaidFeed] Achievement unlocked: {name} ({rarity})");
             ClientEventReporter.Instance?.ReportAchievement(name, rarity);
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] AchievementCompletionPatch error: {ex}"); }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using BepInEx;
 using BepInEx.Configuration;
@@ -32,6 +33,9 @@ public sealed class Plugin : BaseUnityPlugin
     // Cached PMC nicknames keyed by profile ID, read from user/profiles/*.json at startup.
     internal static readonly System.Collections.Generic.Dictionary<string, string> ProfileNicknames = new();
 
+    [Conditional("DEBUG")]
+    internal static void DebugLog(string message) => Log.LogInfo(message);
+
     private void Awake()
     {
         Log = Logger;
@@ -48,7 +52,6 @@ public sealed class Plugin : BaseUnityPlugin
 
         try
         {
-            Log.LogInfo("Enabling patches...");
             new RaidStartPatch().Enable();
             new RaidEndPatch().Enable();
             new RaidStopPatch().Enable();
@@ -57,7 +60,6 @@ public sealed class Plugin : BaseUnityPlugin
             new LootPickupPatch().Enable();
             new QuestCompletionPatch().Enable();
             new AchievementCompletionPatch().Enable();
-            Log.LogInfo("All patches enabled. Creating reporter...");
             var host = new GameObject("DiscordRaidFeedClient");
             DontDestroyOnLoad(host);
             host.AddComponent<ClientEventReporter>();
@@ -75,7 +77,7 @@ public sealed class Plugin : BaseUnityPlugin
             var profilesDir = Path.Combine(gameRoot, "SPT_Runtime", "user", "profiles");
             if (!Directory.Exists(profilesDir))
             {
-                Log.LogInfo("[DiscordRaidFeed] Profiles directory not found, skipping dev profile check.");
+                Log.LogWarning("[DiscordRaidFeed] Profiles directory not found, skipping dev profile check.");
                 return;
             }
 
@@ -91,26 +93,23 @@ public sealed class Plugin : BaseUnityPlugin
                     var username = info["username"]?.ToString();
                     var id = info["id"]?.ToString() ?? Path.GetFileNameWithoutExtension(file);
 
-                    Log.LogInfo($"[DiscordRaidFeed] Scanning profile: id={id}, edition={edition}, username={username}");
-
                     if (string.IsNullOrEmpty(edition)) continue;
 
                     // Cache the PMC nickname for use outside raid (e.g. quest hand-in)
                     var pmcNickname = root["characters"]?["pmc"]?["Info"]?["Nickname"]?.ToString();
-                    Log.LogInfo($"[DiscordRaidFeed]   pmcNickname={pmcNickname ?? "null"}");
                     if (!string.IsNullOrWhiteSpace(pmcNickname))
                         ProfileNicknames[id] = pmcNickname;
 
                     if (edition == "SPT Developer" && username != "Dev2")
                     {
                         DevProfileIds.Add(id);
-                        Log.LogInfo($"[DiscordRaidFeed] Dev profile detected: id={id}, username={username} — events will be skipped.");
+                        DebugLog($"[DiscordRaidFeed] Dev profile detected: id={id}, username={username} — events will be skipped.");
                     }
                 }
                 catch (Exception ex) { Log.LogError($"[DiscordRaidFeed] Error scanning profile {file}: {ex.Message}"); }
             }
 
-            Log.LogInfo($"[DiscordRaidFeed] Profile scan complete. {DevProfileIds.Count} dev profile(s), {ProfileNicknames.Count} nickname(s) cached.");
+            DebugLog($"[DiscordRaidFeed] Profile scan complete. {DevProfileIds.Count} dev profile(s), {ProfileNicknames.Count} nickname(s) cached.");
         }
         catch (Exception ex) { Log.LogError($"[DiscordRaidFeed] Failed to scan profiles: {ex}"); }
     }

@@ -13,7 +13,7 @@ public sealed class EventManager(DiscordWebhookService discord, ConfigService co
     {
         try
         {
-            log.Info($"Publish called: type={eventData.Type}, player={eventData.Player}, map={eventData.Map}, raidTime={eventData.RaidTimeSeconds}s");
+            log.Debug($"Publish called: type={eventData.Type}, player={eventData.Player}, map={eventData.Map}, raidTime={eventData.RaidTimeSeconds}s");
             if (eventData.Type == RaidEventType.Loot)
             {
                 long amount = 0;
@@ -23,12 +23,12 @@ public sealed class EventManager(DiscordWebhookService discord, ConfigService co
                     amount = parsed;
                 if (!config.Local.Webhooks.Any(destination => config.Get(destination).Settings.Loot.MinimumValue <= amount))
                 {
-                    log.Warning($"Loot event dropped: value {amount} below all configured minimums");
+                    log.Debug($"Loot event dropped: value {amount} below all configured minimums");
                     return;
                 }
             }
             var enqueued = discord.Enqueue(eventData);
-            log.Info($"Enqueue result: {enqueued} (queue had {config.Local.Webhooks.Count} webhooks)");
+            log.Debug($"Enqueue result: {enqueued} (queue had {config.Local.Webhooks.Count} webhooks)");
         }
         catch (Exception ex) { log.Error("Could not queue raid event.", ex); }
     }

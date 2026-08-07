@@ -131,12 +131,12 @@ public sealed class ClientEventReporter : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        Plugin.Log.LogInfo("[DiscordRaidFeed] ClientEventReporter Awake");
+        Plugin.DebugLog("[DiscordRaidFeed] ClientEventReporter Awake");
     }
 
     private void OnDestroy()
     {
-        Plugin.Log.LogInfo("[DiscordRaidFeed] ClientEventReporter OnDestroy — Instance preserved for raid end events");
+        Plugin.DebugLog("[DiscordRaidFeed] ClientEventReporter OnDestroy — Instance preserved for raid end events");
         // Don't clear Instance — we need it to survive during GameWorld.OnDestroy
     }
 
@@ -182,7 +182,7 @@ public sealed class ClientEventReporter : MonoBehaviour
                 {
                     var evt = _pendingRaidEndEvent;
                     _pendingRaidEndEvent = null;
-                    Plugin.Log.LogInfo($"[DiscordRaidFeed] Capturing screenshot for {evt.Type} (1s after UI shown)");
+                    Plugin.DebugLog($"[DiscordRaidFeed] Capturing screenshot for {evt.Type} (1s after UI shown)");
                     Enqueue(evt);
                 }
                 else if (Time.time >= _raidEndTimeoutAt)
@@ -198,7 +198,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             while (_pendingAchievementEvents.Count > 0 && Time.time >= _pendingAchievementEvents.Peek().captureAt)
             {
                 var (evt, _) = _pendingAchievementEvents.Dequeue();
-                Plugin.Log.LogInfo($"[DiscordRaidFeed] Capturing screenshot for Achievement (1s after unlock)");
+                Plugin.DebugLog($"[DiscordRaidFeed] Capturing screenshot for Achievement (1s after unlock)");
                 Enqueue(evt);
             }
 
@@ -226,20 +226,20 @@ public sealed class ClientEventReporter : MonoBehaviour
         _cachedKillerName = "Unknown";
         _lastLevel = _cachedLevel;
 
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Raid started: map={_cachedMap}, player={_cachedPlayerName}");
+        Plugin.DebugLog($"[DiscordRaidFeed] Raid started: map={_cachedMap}, player={_cachedPlayerName}");
     }
 
     public void OnPlayerDeath(Player victim)
     {
         _cachedIsAlive = false;
         _cachedKillerName = ResolveKillerName(victim);
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Player death detected: killer={_cachedKillerName}");
+        Plugin.DebugLog($"[DiscordRaidFeed] Player death detected: killer={_cachedKillerName}");
     }
 
     public void OnRaidStop(ExitStatus exitStatus)
     {
         _cachedExitStatus = exitStatus;
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Raid stop detected: exitStatus={exitStatus}");
+        Plugin.DebugLog($"[DiscordRaidFeed] Raid stop detected: exitStatus={exitStatus}");
 
         // Update the pending raid-end event with the correct exit status
         if (_pendingRaidEndEvent != null)
@@ -257,7 +257,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             {
                 _pendingRaidEndEvent.Type = RaidEventType.Extract;
             }
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Updated pending event type to {_pendingRaidEndEvent.Type}");
+            Plugin.DebugLog($"[DiscordRaidFeed] Updated pending event type to {_pendingRaidEndEvent.Type}");
 
             // Set 1s delay for screenshot capture (let the UI fully render)
             _raidEndCaptureAt = Time.time + 1f;
@@ -266,7 +266,7 @@ public sealed class ClientEventReporter : MonoBehaviour
 
     public void OnRaidEnd()
     {
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] OnRaidEnd called: _inRaid={_inRaid}, _raidEnded={_raidEnded}, player={_cachedPlayerName}, isAlive={_cachedIsAlive}, exitStatus={_cachedExitStatus}");
+        Plugin.DebugLog($"[DiscordRaidFeed] OnRaidEnd called: _inRaid={_inRaid}, _raidEnded={_raidEnded}, player={_cachedPlayerName}, isAlive={_cachedIsAlive}, exitStatus={_cachedExitStatus}");
 
         if (!_inRaid || _raidEnded) return;
         _raidEnded = true;
@@ -284,7 +284,7 @@ public sealed class ClientEventReporter : MonoBehaviour
                 ["Killer"] = _cachedKillerName,
                 ["Gear Value Lost"] = FormatValue(_cachedLostOnDeathValue),
             };
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting death: killer={_cachedKillerName}, gearValue={_cachedLostOnDeathValue}, raidTime={raidTime}s");
+            Plugin.DebugLog($"[DiscordRaidFeed] Reporting death: killer={_cachedKillerName}, gearValue={_cachedLostOnDeathValue}, raidTime={raidTime}s");
         }
         else if (_cachedExitStatus == ExitStatus.Runner)
         {
@@ -294,7 +294,7 @@ public sealed class ClientEventReporter : MonoBehaviour
                 ["FIR Loot Value"] = FormatValue(_cachedFirValue),
                 ["Total Inventory Value"] = FormatValue(_cachedTotalValue),
             };
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting run-through: firValue={_cachedFirValue}, totalValue={_cachedTotalValue}, raidTime={raidTime}s");
+            Plugin.DebugLog($"[DiscordRaidFeed] Reporting run-through: firValue={_cachedFirValue}, totalValue={_cachedTotalValue}, raidTime={raidTime}s");
         }
         else
         {
@@ -304,7 +304,7 @@ public sealed class ClientEventReporter : MonoBehaviour
                 ["FIR Loot Value"] = FormatValue(_cachedFirValue),
                 ["Total Inventory Value"] = FormatValue(_cachedTotalValue),
             };
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Reporting extract: firValue={_cachedFirValue}, totalValue={_cachedTotalValue}, raidTime={raidTime}s");
+            Plugin.DebugLog($"[DiscordRaidFeed] Reporting extract: firValue={_cachedFirValue}, totalValue={_cachedTotalValue}, raidTime={raidTime}s");
         }
 
         // Delay screenshot capture for extract/death/run-through — capture after scene transition
@@ -321,7 +321,7 @@ public sealed class ClientEventReporter : MonoBehaviour
         };
         _raidEndTimeoutAt = Time.time + 20f; // 20s timeout fallback if SessionResultExitStatus never shows
         _raidEndCaptureAt = 0f; // Will be set by OnRaidStop when SessionResultExitStatus.Show fires
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Raid end event queued, waiting for SessionResultExitStatus.Show (20s timeout)");
+        Plugin.DebugLog($"[DiscordRaidFeed] Raid end event queued, waiting for SessionResultExitStatus.Show (20s timeout)");
 
         _inRaid = false;
     }
@@ -336,7 +336,7 @@ public sealed class ClientEventReporter : MonoBehaviour
         var weapon = damageInfo.Weapon?.LocalizedName() ?? "?";
         var role = boss.Profile.Info.Settings.Role.ToString();
         var bossName = BossName(role);
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Boss kill: boss={role} ({bossName}), weapon={weapon}");
+        Plugin.DebugLog($"[DiscordRaidFeed] Boss kill: boss={role} ({bossName}), weapon={weapon}");
         Enqueue(new RaidEventPayload
         {
             Type = RaidEventType.BossKill,
@@ -370,7 +370,7 @@ public sealed class ClientEventReporter : MonoBehaviour
         var itemName = item.LocalizedName();
         // Sum the value of the item plus all its children (attachments, mods, contents)
         var value = ItemTreeValue(item);
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Loot picked up: item={itemName}, value={value} (incl. children)");
+        Plugin.DebugLog($"[DiscordRaidFeed] Loot picked up: item={itemName}, value={value} (incl. children)");
         Enqueue(new RaidEventPayload
         {
             Type = RaidEventType.Loot,
@@ -406,7 +406,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             {
                 // In SPT the session ID is the profile ID — look up the cached nickname
                 var sessionId = GetSessionId();
-                Plugin.Log.LogInfo($"[DiscordRaidFeed] Quest name lookup: sessionId={sessionId ?? "null"}, cachedNames={Plugin.ProfileNicknames.Count}");
+                Plugin.DebugLog($"[DiscordRaidFeed] Quest name lookup: sessionId={sessionId ?? "null"}, cachedNames={Plugin.ProfileNicknames.Count}");
                 if (!string.IsNullOrWhiteSpace(sessionId) && Plugin.ProfileNicknames.TryGetValue(sessionId, out var nick))
                     playerName = nick;
                 else if (Plugin.ProfileNicknames.Count > 0)
@@ -414,7 +414,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             }
         }
         catch { }
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Quest completed: {questName}, player={playerName}");
+        Plugin.DebugLog($"[DiscordRaidFeed] Quest completed: {questName}, player={playerName}");
         Enqueue(new RaidEventPayload
         {
             Type = RaidEventType.Quest,
@@ -446,7 +446,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             }
         }
         catch { }
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Achievement unlocked: {achievementName}, player={playerName}");
+        Plugin.DebugLog($"[DiscordRaidFeed] Achievement unlocked: {achievementName}, player={playerName}");
         // Delay screenshot by 1s so the achievement notification UI is visible
         _pendingAchievementEvents.Enqueue((new RaidEventPayload
         {
@@ -592,7 +592,7 @@ public sealed class ClientEventReporter : MonoBehaviour
         // Skip posting for SPT Developer profiles (unless username is "Dev2")
         if (Plugin.DevProfileIds.Contains(_cachedProfileId))
         {
-            Plugin.Log.LogDebug($"[DiscordRaidFeed] Skipping event {payload.Type} for dev profile {_cachedProfileId}");
+            Plugin.DebugLog($"[DiscordRaidFeed] Skipping event {payload.Type} for dev profile {_cachedProfileId}");
             return;
         }
 
@@ -613,7 +613,7 @@ public sealed class ClientEventReporter : MonoBehaviour
         {
             var path = Path.Combine(Application.temporaryCachePath, $"discord-raid-feed-{Guid.NewGuid():N}.png");
             ScreenCapture.CaptureScreenshot(path);
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Screenshot capturing to file: {path}");
+            Plugin.DebugLog($"[DiscordRaidFeed] Screenshot capturing to file: {path}");
             return path;
         }
         catch (Exception ex)
@@ -645,7 +645,7 @@ public sealed class ClientEventReporter : MonoBehaviour
                     {
                         var bytes = File.ReadAllBytes(payload.ScreenshotPath);
                         payload.ScreenshotBase64 = Convert.ToBase64String(bytes);
-                        Plugin.Log.LogInfo($"[DiscordRaidFeed] Screenshot read: {bytes.Length} bytes, base64 length={payload.ScreenshotBase64.Length}");
+                        Plugin.DebugLog($"[DiscordRaidFeed] Screenshot read: {bytes.Length} bytes, base64 length={payload.ScreenshotBase64.Length}");
                         try { File.Delete(payload.ScreenshotPath); } catch { }
                     }
                 }
@@ -654,7 +654,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             }
 
             var json = JsonConvert.SerializeObject(payload, Formatting.None);
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] Sending event to server: {payload.Type}, json length={json.Length}");
+            Plugin.DebugLog($"[DiscordRaidFeed] Sending event to server: {payload.Type}, json length={json.Length}");
 
             var url = Plugin.ServerUrl.Value.TrimEnd('/') + "/client/discordraidfeed/event";
             var session = GetSessionId();
@@ -674,7 +674,7 @@ public sealed class ClientEventReporter : MonoBehaviour
             var response = await client.PostAsync(url, content);
             var body = await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode)
-                Plugin.Log.LogInfo($"[DiscordRaidFeed] Event sent to server: {payload.Type} (response: {body})");
+                Plugin.DebugLog($"[DiscordRaidFeed] Event sent to server: {payload.Type} (response: {body})");
             else
                 Plugin.Log.LogWarning($"[DiscordRaidFeed] Event upload failed: {(int)response.StatusCode} {response.StatusCode} - {body}");
         }

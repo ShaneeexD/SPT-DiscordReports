@@ -24,12 +24,12 @@ public sealed class DiscordWebhookService(ConfigService config, ScreenshotServic
     {
         await foreach (var eventData in _queue.Reader.ReadAllAsync(token))
         {
-            log.Info($"Processing event: type={eventData.Type}, player={eventData.Player}");
+            log.Debug($"Processing event: type={eventData.Type}, player={eventData.Player}");
             foreach (var destination in config.Local.Webhooks.Where(x => Uri.TryCreate(x.Url, UriKind.Absolute, out _)))
             {
                 if (!config.IsEnabled(destination, eventData.Type, eventData)) continue;
-                log.Info($"Sending {eventData.Type} to webhook '{destination.Name}' at {destination.Url[..Math.Min(50, destination.Url.Length)]}...");
-                try { var image = config.IsScreenshotEnabled(destination, eventData.Type) ? await screenshots.ReadAsync(eventData, token).ConfigureAwait(false) : null; await SendAsync(destination, eventData, image, token).ConfigureAwait(false); log.Info($"Webhook '{destination.Name}' sent successfully."); }
+                log.Debug($"Sending {eventData.Type} to webhook '{destination.Name}' at {destination.Url[..Math.Min(50, destination.Url.Length)]}...");
+                try { var image = config.IsScreenshotEnabled(destination, eventData.Type) ? await screenshots.ReadAsync(eventData, token).ConfigureAwait(false) : null; await SendAsync(destination, eventData, image, token).ConfigureAwait(false); log.Debug($"Webhook '{destination.Name}' sent successfully."); }
                 catch (Exception ex) { log.Error($"Webhook '{destination.Name}' failed.", ex); }
             }
         }

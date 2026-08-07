@@ -19,7 +19,7 @@ public sealed class RaidStartPatch : AbstractPatch
     public static void Prefix(MongoId sessionId, StartLocalRaidRequestData request)
     {
         Dependencies.Tracker?.OnRaidStart(sessionId.ToString(), request.Location ?? "Unknown");
-        Dependencies.Logger?.Info($"[DiscordRaidFeed] Raid start tracked: session={sessionId}, location={request.Location}");
+        Dependencies.Logger?.Debug($"[DiscordRaidFeed] Raid start tracked: session={sessionId}, location={request.Location}");
     }
 
     internal static DependenciesHolder? Dependencies;
@@ -52,7 +52,7 @@ public sealed class RaidEndPatch : AbstractPatch
         // Server-side raid end is tracked for timing only.
         // Death/extract events are sent by the client mod with richer data (killer name, gear value, loot value, screenshots).
         // If the client mod is not installed, no death/extract event will be sent.
-        Dependencies.Logger?.Info($"[DiscordRaidFeed] Raid ended (server-side): player={result.Profile?.Info?.Nickname ?? "Unknown"}, map={map}, playTime={playTime}s, result={result.Result}. Client mod handles Discord notification.");
+        Dependencies.Logger?.Debug($"[DiscordRaidFeed] Raid ended (server-side): player={result.Profile?.Info?.Nickname ?? "Unknown"}, map={map}, playTime={playTime}s, result={result.Result}. Client mod handles Discord notification.");
     }
 
     internal static DependenciesHolder? Dependencies;

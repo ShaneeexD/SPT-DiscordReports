@@ -43,16 +43,16 @@ public sealed class ConfigService(Log log)
         var s = Get(destination).Settings;
         if (s.Filters.MinimumRaidDuration > 0 && e.RaidTimeSeconds > 0 && e.RaidTimeSeconds < s.Filters.MinimumRaidDuration)
         {
-            log.Info($"Event {type} filtered: raidTime {e.RaidTimeSeconds}s < minimum {s.Filters.MinimumRaidDuration}s for {destination.Name}");
+            log.Debug($"Event {type} filtered: raidTime {e.RaidTimeSeconds}s < minimum {s.Filters.MinimumRaidDuration}s for {destination.Name}");
             return false;
         }
         if (s.Filters.IgnoredMaps.Any(x => string.Equals(x, e.Map, StringComparison.OrdinalIgnoreCase)))
         {
-            log.Info($"Event {type} filtered: map {e.Map} in ignoredMaps for {destination.Name}");
+            log.Debug($"Event {type} filtered: map {e.Map} in ignoredMaps for {destination.Name}");
             return false;
         }
         var enabled = type switch { Events.RaidEventType.Death => s.Events.Deaths, Events.RaidEventType.Extract => s.Events.Extracts, Events.RaidEventType.RunThrough => s.Events.RunThroughs, Events.RaidEventType.Loot => s.Events.Loot, Events.RaidEventType.Quest => s.Events.Quests, Events.RaidEventType.BossKill => s.Events.BossKills, Events.RaidEventType.LevelUp => s.Events.LevelUps, Events.RaidEventType.Achievement => s.Events.Achievements, _ => false };
-        if (!enabled) log.Info($"Event {type} filtered: disabled in remote config for {destination.Name}");
+        if (!enabled) log.Debug($"Event {type} filtered: disabled in remote config for {destination.Name}");
         return enabled;
     }
 
@@ -69,7 +69,7 @@ public sealed class ConfigService(Log log)
             if (!Version.TryParse(config.MinimumModVersion, out var minimum) || minimum > new Version("1.0.0")) log.Warning($"{destination.Name} requires mod version {config.MinimumModVersion}.");
             File.WriteAllText(cache, json);
             _states[destination.Name] = new RemoteState(config, hash, DateTimeOffset.UtcNow, null);
-            log.Info($"Updated remote configuration for {destination.Name}.");
+            log.Debug($"Updated remote configuration for {destination.Name}.");
         }
         catch (Exception ex)
         {
