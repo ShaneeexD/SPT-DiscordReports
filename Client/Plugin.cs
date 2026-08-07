@@ -27,7 +27,6 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> LevelUpEvents = null!;
     internal static ConfigEntry<bool> AchievementEvents = null!;
 
-    // Profile IDs with edition "SPT Developer" (and username != "Dev2") — events from these are skipped.
     internal static readonly System.Collections.Generic.HashSet<string> DevProfileIds = new();
 
     // Cached PMC nicknames keyed by profile ID, read from user/profiles/*.json at startup.
