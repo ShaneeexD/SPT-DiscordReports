@@ -37,7 +37,7 @@
 *.tmp
 *.temp
 /Refs/
-
+/Release/
 # Local BepInEx configuration and generated mod settings
 /BepInEx/
 /Server/user/
