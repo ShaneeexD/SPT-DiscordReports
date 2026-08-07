@@ -28,6 +28,9 @@ public sealed class Plugin : BaseUnityPlugin
     // Profile IDs with edition "SPT Developer" (and username != "Dev2") — events from these are skipped.
     internal static readonly System.Collections.Generic.HashSet<string> DevProfileIds = new();
 
+    // Cached PMC nicknames keyed by profile ID, read from user/profiles/*.json at startup.
+    internal static readonly System.Collections.Generic.Dictionary<string, string> ProfileNicknames = new();
+
     private void Awake()
     {
         Log = Logger;
@@ -64,9 +67,9 @@ public sealed class Plugin : BaseUnityPlugin
     {
         try
         {
-            var sptRoot = Path.GetDirectoryName(Application.dataPath);
-            if (sptRoot == null) return;
-            var profilesDir = Path.Combine(sptRoot, "user", "profiles");
+            var gameRoot = Path.GetDirectoryName(Application.dataPath);
+            if (gameRoot == null) return;
+            var profilesDir = Path.Combine(gameRoot, "SPT_Runtime", "user", "profiles");
             if (!Directory.Exists(profilesDir))
             {
                 Log.LogInfo("[DiscordRaidFeed] Profiles directory not found, skipping dev profile check.");
@@ -85,7 +88,15 @@ public sealed class Plugin : BaseUnityPlugin
                     var username = info["username"]?.ToString();
                     var id = info["id"]?.ToString() ?? Path.GetFileNameWithoutExtension(file);
 
+                    Log.LogInfo($"[DiscordRaidFeed] Scanning profile: id={id}, edition={edition}, username={username}");
+
                     if (string.IsNullOrEmpty(edition)) continue;
+
+                    // Cache the PMC nickname for use outside raid (e.g. quest hand-in)
+                    var pmcNickname = root["characters"]?["pmc"]?["Info"]?["Nickname"]?.ToString();
+                    Log.LogInfo($"[DiscordRaidFeed]   pmcNickname={pmcNickname ?? "null"}");
+                    if (!string.IsNullOrWhiteSpace(pmcNickname))
+                        ProfileNicknames[id] = pmcNickname;
 
                     if (edition == "SPT Developer" && username != "Dev2")
                     {
@@ -93,10 +104,10 @@ public sealed class Plugin : BaseUnityPlugin
                         Log.LogInfo($"[DiscordRaidFeed] Dev profile detected: id={id}, username={username} — events will be skipped.");
                     }
                 }
-                catch { }
+                catch (Exception ex) { Log.LogError($"[DiscordRaidFeed] Error scanning profile {file}: {ex.Message}"); }
             }
 
-            Log.LogInfo($"[DiscordRaidFeed] Profile scan complete. {DevProfileIds.Count} dev profile(s) found.");
+            Log.LogInfo($"[DiscordRaidFeed] Profile scan complete. {DevProfileIds.Count} dev profile(s), {ProfileNicknames.Count} nickname(s) cached.");
         }
         catch (Exception ex) { Log.LogError($"[DiscordRaidFeed] Failed to scan profiles: {ex}"); }
     }

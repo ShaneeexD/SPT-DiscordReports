@@ -383,14 +383,34 @@ public sealed class ClientEventReporter : MonoBehaviour
     public void ReportQuest(string questName, string trader)
     {
         if (!Plugin.QuestEvents.Value) return;
-        Plugin.Log.LogInfo($"[DiscordRaidFeed] Quest completed: {questName}");
+        // Quests can be handed in outside raid, so resolve the player name from the cached profile
+        var playerName = _cachedPlayerName;
+        try
+        {
+            var player = Singleton<GameWorld>.Instance?.MainPlayer;
+            if (player?.Profile?.Info?.Nickname != null)
+            {
+                playerName = player.Profile.Info.Nickname;
+            }
+            else
+            {
+                // In SPT the session ID is the profile ID — look up the cached nickname
+                var sessionId = GetSessionId();
+                Plugin.Log.LogInfo($"[DiscordRaidFeed] Quest name lookup: sessionId={sessionId ?? "null"}, cachedNames={Plugin.ProfileNicknames.Count}");
+                if (!string.IsNullOrWhiteSpace(sessionId) && Plugin.ProfileNicknames.TryGetValue(sessionId, out var nick))
+                    playerName = nick;
+                else if (Plugin.ProfileNicknames.Count > 0)
+                    playerName = Plugin.ProfileNicknames.First().Value;
+            }
+        }
+        catch { }
+        Plugin.Log.LogInfo($"[DiscordRaidFeed] Quest completed: {questName}, player={playerName}");
         Enqueue(new RaidEventPayload
         {
             Type = RaidEventType.Quest,
-            Player = _cachedPlayerName,
+            Player = playerName,
             Level = _cachedLevel,
             Map = _cachedMap,
-            RaidTimeSeconds = Time.time - _raidStartedAt,
             Fields = new Dictionary<string, string> { ["Quest"] = questName, ["Trader"] = trader },
             Screenshot = Plugin.Screenshots.Value
         });

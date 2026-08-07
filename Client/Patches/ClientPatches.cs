@@ -201,10 +201,10 @@ internal class QuestCompletionPatch : ModulePatch
     {
         try
         {
-            if (quest == null || quest.QuestStatus != EQuestStatus.Success) return;
+            if (quest == null) return;
             var questName = quest.Template?.Name ?? quest.Id;
             var trader = TraderName(quest.Template?.TraderId);
-            Plugin.Log.LogInfo($"[DiscordRaidFeed] QuestCompletionPatch fired: {questName} ({trader})");
+            Plugin.Log.LogInfo($"[DiscordRaidFeed] Quest completed: {questName} ({trader})");
             ClientEventReporter.Instance?.ReportQuest(questName, trader);
         }
         catch (Exception ex) { Plugin.Log.LogError($"[DiscordRaidFeed] QuestCompletionPatch error: {ex}"); }
